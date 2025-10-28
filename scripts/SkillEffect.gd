@@ -8,6 +8,7 @@ var damage: int = 0
 var skill_type: String = "projectile"
 var traveled_distance: float = 0.0
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
+var source: Node = null  # 技能来源（玩家或敌人）
 
 @onready var sprite = $Sprite2D
 
@@ -123,7 +124,8 @@ func _on_body_entered(body: Node2D) -> void:
 func handle_player_projectile_collision(body: Node2D) -> void:
 	# 玩家弹道：检查是否为敌人（不攻击玩家自己）
 	if body != get_tree().get_first_node_in_group("players") and body.has_method("take_damage"):
-		body.take_damage(damage)
+		# 传递伤害来源（玩家）
+		body.take_damage(damage, source if source else get_tree().get_first_node_in_group("players"))
 		print("玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害")
 		
 		# 延迟禁用碰撞检测，避免物理引擎冲突

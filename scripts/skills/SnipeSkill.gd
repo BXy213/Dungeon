@@ -28,7 +28,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	var target_enemy = find_closest_enemy(target_position, 50.0)
 	
 	if target_enemy and target_enemy.has_method("take_damage"):
-		target_enemy.take_damage(100)
+		target_enemy.take_damage(100, player)
 		
 		# 创建射击效果
 		var snipe_effect = create_skill_effect("targeted", target_enemy.global_position)

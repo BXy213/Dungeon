@@ -29,7 +29,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	var target_enemy = find_closest_enemy(target_position, 100.0)
 	
 	if target_enemy and target_enemy.has_method("take_damage"):
-		target_enemy.take_damage(80)
+		target_enemy.take_damage(80, player)
 		
 		# 创建闪电效果
 		var lightning = create_skill_effect("instant", target_enemy.global_position)

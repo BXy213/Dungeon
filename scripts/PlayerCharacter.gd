@@ -163,6 +163,7 @@ func create_basic_attack_projectile(target_pos: Vector2) -> void:
 	projectile.life_time = 3.0
 	projectile.collision_layer = 8  # 玩家弹道层
 	projectile.collision_mask = 5   # 检测敌人层(4) + 障碍物层(1) = 5
+	projectile.source = self  # 设置伤害来源为玩家
 	
 	# 计算方向
 	var direction = (target_pos - position).normalized()

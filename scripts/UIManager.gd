@@ -228,6 +228,10 @@ func _on_room_changed(new_room, _old_room) -> void:
 		if new_room.enemy_died_in_room.is_connected(_on_enemy_died_in_room):
 			new_room.enemy_died_in_room.disconnect(_on_enemy_died_in_room)
 		new_room.enemy_died_in_room.connect(_on_enemy_died_in_room)
+		
+		# 连接敌人计数变化信号（检查是否已连接）
+		if not new_room.enemy_count_changed.is_connected(_on_enemy_count_changed):
+			new_room.enemy_count_changed.connect(_on_enemy_count_changed)
 	
 	# 更新小地图玩家位置和房间状态
 	update_player_position_on_minimap()
@@ -459,6 +463,17 @@ func _on_enemy_died_in_room(_room_id: Vector2i, remaining_count: int) -> void:
 			enemy_counter_label.text = "敌人: 已清除"
 			enemy_counter_label.modulate = Color.GREEN
 
+func _on_enemy_count_changed(_room_id: Vector2i, enemy_count: int) -> void:
+	"""敌人数量变化时更新UI（包括增加和减少）"""
+	if enemy_counter_label:
+		if enemy_count > 0:
+			enemy_counter_label.text = "🔥 敌人: " + str(enemy_count)
+			enemy_counter_label.modulate = Color.RED
+		else:
+			enemy_counter_label.text = "💀 敌人: 已清除"
+			enemy_counter_label.modulate = Color.GREEN
+	print("UI敌人计数更新: ", enemy_count)
+
 func update_room_status_display(room) -> void:
 	if not room or not room_status_label or not enemy_counter_label:
 		return
@@ -544,8 +559,11 @@ func connect_room_signals() -> void:
 	# 为所有房间连接敌人死亡信号
 	if dungeon_generator:
 		for room in dungeon_generator.rooms.values():
-			if room and not room.enemy_died_in_room.is_connected(_on_enemy_died_in_room):
-				room.enemy_died_in_room.connect(_on_enemy_died_in_room)
+			if room:
+				if not room.enemy_died_in_room.is_connected(_on_enemy_died_in_room):
+					room.enemy_died_in_room.connect(_on_enemy_died_in_room)
+				if not room.enemy_count_changed.is_connected(_on_enemy_count_changed):
+					room.enemy_count_changed.connect(_on_enemy_count_changed)
 
 func create_minimap() -> void:
 	# 创建小地图面板（左上角）

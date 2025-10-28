@@ -153,6 +153,7 @@ func create_skill_effect(effect_type: String, position: Vector2) -> Node:
 	effect.global_position = position
 	effect.modulate = skill_color
 	effect.skill_type = effect_type
+	effect.source = player  # 设置技能来源为玩家
 	
 	# 添加到技能效果容器
 	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")

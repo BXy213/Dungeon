@@ -62,6 +62,9 @@ var is_dead: bool = false
 var buff_system: Node  # BuffSystem type will be available at runtime
 var skill_manager: Node = null
 
+# UI组件 - 假设存在，如果没有会在运行时安全检查
+@onready var sprite: Node = get_node_or_null("Sprite2D")
+
 ## ========== 计时器和冷却 ==========
 
 var attack_ready: bool = true
@@ -338,6 +341,13 @@ func die() -> void:
 	
 	print("💀 ", character_name, " 死亡!")
 	
+	# 检查是否是BOSS
+	if character_name == "BOSS":
+		print("🎉 检测到BOSS死亡！")
+		var game_manager = get_tree().current_scene.get_node_or_null("GameManager")
+		if game_manager and game_manager.has_method("_on_boss_defeated"):
+			game_manager._on_boss_defeated()
+	
 	# 清除所有Buff
 	if buff_system:
 		buff_system.clear_all_buffs()
@@ -448,7 +458,20 @@ func get_direction_to(target: Node2D) -> Vector2:
 
 func get_health_percentage() -> float:
 	"""获取生命值百分比"""
-	return float(health) / float(max_health) if max_health > 0 else 0.0
+	return float(health) / float(max_health)
+
+func get_debug_info() -> Dictionary:
+	"""获取调试信息（基础实现）"""
+	return {
+		"character_name": character_name,
+		"character_type": str(character_type),
+		"health": str(health) + "/" + str(max_health),
+		"mana": str(mana) + "/" + str(max_mana),
+		"position": str(global_position),
+		"state": str(current_state),
+		"is_dead": is_dead,
+		"is_stunned": is_stunned,
+	}
 
 func get_mana_percentage() -> float:
 	"""获取魔法值百分比"""

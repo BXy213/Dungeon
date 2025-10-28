@@ -33,7 +33,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(120)
+			enemy.take_damage(120, player)
 			hit_count += 1
 	
 	print("💥 范围轰炸命中 ", hit_count, " 个敌人，造成 120 点伤害")

@@ -36,6 +36,7 @@ var connections: Array[Vector2i] = []
 
 signal room_completed(room_id: Vector2i)
 signal enemy_died_in_room(room_id: Vector2i, remaining_enemies: int)
+signal enemy_count_changed(room_id: Vector2i, enemy_count: int)
 
 func _ready() -> void:
 	# 创建房间背景
@@ -160,6 +161,10 @@ func generate_enemies() -> void:
 	
 	alive_enemy_count = enemies.size()
 	print("房间 ", room_id, " 生成了 ", enemies.size(), " 个敌人")
+	
+	# 发出敌人计数变化信号
+	if alive_enemy_count > 0:
+		enemy_count_changed.emit(room_id, alive_enemy_count)
 
 func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[String]:
 	"""根据房间位置确定敌人类型"""
@@ -200,23 +205,29 @@ func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[Str
 	
 	return enemies_to_spawn
 
+# 预加载敌人子类（使用不同的名称避免与全局类名冲突）
+const MeleeEnemyScript = preload("res://scripts/enemies/MeleeEnemy.gd")
+const RangedEnemyScript = preload("res://scripts/enemies/RangedEnemy.gd")
+const EliteEnemyScript = preload("res://scripts/enemies/EliteEnemy.gd")
+const BossEnemyScript = preload("res://scripts/enemies/BossEnemy.gd")
+
 func create_enemy_by_type(enemy_type: String) -> Node:
-	"""根据类型创建敌人"""
-	var enemy_scene = preload("res://Scenes/Enemy.tscn")
-	var enemy = enemy_scene.instantiate()
+	"""根据类型创建敌人（使用新的敌人子类）"""
+	var enemy: Node
 	
+	# 根据类型创建对应的敌人子类
 	match enemy_type:
 		"melee_soldier":
-			enemy.enemy_type = enemy.EnemyType.MELEE_SOLDIER
+			enemy = MeleeEnemyScript.create_melee_enemy(room_id)
 		"ranged_soldier":
-			enemy.enemy_type = enemy.EnemyType.RANGED_SOLDIER
+			enemy = RangedEnemyScript.create_ranged_enemy(room_id)
 		"elite_melee":
-			enemy.enemy_type = enemy.EnemyType.ELITE_MELEE
+			enemy = EliteEnemyScript.create_elite_enemy(room_id)
 		"boss":
-			enemy.enemy_type = enemy.EnemyType.BOSS
+			enemy = BossEnemyScript.create_boss_enemy(room_id)
 		_:
-			print("⚠️ 未知敌人类型: ", enemy_type)
-			enemy.enemy_type = enemy.EnemyType.MELEE_SOLDIER
+			print("⚠️ 未知敌人类型: ", enemy_type, "，默认创建近战小兵")
+			enemy = MeleeEnemyScript.create_melee_enemy(room_id)
 	
 	return enemy
 
@@ -275,12 +286,26 @@ func save_room_data() -> void:
 				"health": enemy.health,
 				"max_health": enemy.max_health,
 				"is_dead": enemy.is_dead,
-				"enemy_type": enemy.enemy_type
+				"enemy_type": get_enemy_type_as_int(enemy)
 			}
 			saved_enemy_data.append(enemy_data)
 	
 	has_saved_data = true
 	print("已保存房间数据: ", room_id, " 障碍物:", saved_obstacle_data.size(), " 敌人:", saved_enemy_data.size())
+
+func get_enemy_type_as_int(enemy: Node) -> int:
+	"""获取敌人类型的整数表示（兼容性方法）"""
+	var enemy_name = enemy.character_name
+	if "近战" in enemy_name:
+		return 0  # MELEE_SOLDIER
+	elif "远程" in enemy_name:
+		return 1  # RANGED_SOLDIER
+	elif "精英" in enemy_name:
+		return 2  # ELITE_MELEE
+	elif "BOSS" in enemy_name:
+		return 3  # BOSS
+	else:
+		return 0  # 默认近战
 
 func load_room_data() -> void:
 	# 清理现有数据
@@ -319,12 +344,40 @@ func load_room_data() -> void:
 	print("已加载房间数据: ", room_id, " 障碍物:", obstacles.size(), " 敌人:", enemies.size())
 
 func create_enemy_by_type_from_data(enemy_data: Dictionary) -> Node:
-	"""从保存的数据创建敌人"""
-	var enemy_scene = preload("res://Scenes/Enemy.tscn")
-	var enemy = enemy_scene.instantiate()
+	"""从保存的数据创建敌人（使用新的敌人子类）"""
+	var enemy: Node
+	var enemy_type_string = ""
 	
-	# 设置敌人类型
-	enemy.enemy_type = enemy_data.get("enemy_type", 0)  # 默认为MELEE_SOLDIER
+	# 确定敌人类型
+	if enemy_data.has("enemy_type"):
+		# 新版本有enemy_type字段
+		match enemy_data.enemy_type:
+			0: # MELEE_SOLDIER
+				enemy_type_string = "melee_soldier"
+			1: # RANGED_SOLDIER
+				enemy_type_string = "ranged_soldier"
+			2: # ELITE_MELEE
+				enemy_type_string = "elite_melee"
+			3: # BOSS
+				enemy_type_string = "boss"
+			_:
+				enemy_type_string = "melee_soldier"
+	else:
+		# 旧版本没有enemy_type，根据名称推断
+		var enemy_name = enemy_data.get("character_name", "")
+		if "近战" in enemy_name:
+			enemy_type_string = "melee_soldier"
+		elif "远程" in enemy_name:
+			enemy_type_string = "ranged_soldier"
+		elif "精英" in enemy_name:
+			enemy_type_string = "elite_melee"
+		elif "BOSS" in enemy_name or "Boss" in enemy_name:
+			enemy_type_string = "boss"
+		else:
+			enemy_type_string = "melee_soldier"
+	
+	# 使用统一的创建方法
+	enemy = create_enemy_by_type(enemy_type_string)
 	
 	return enemy
 
@@ -341,6 +394,7 @@ func _on_enemy_character_died(enemy: CharacterBase) -> void:
 	
 	# 发出信号
 	enemy_died_in_room.emit(room_id, alive_enemy_count)
+	enemy_count_changed.emit(room_id, alive_enemy_count)
 	
 	# 检查房间是否完成
 	if alive_enemy_count == 0 and not is_room_completed:
