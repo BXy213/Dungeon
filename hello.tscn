@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://ciofmgyken6fk"]
+
+[ext_resource type="Script" uid="uid://bffvrdrreq37k" path="res://helloworld.gd" id="1_p3r8j"]
+[ext_resource type="Texture2D" uid="uid://by344v5flxq7k" path="res://icon.svg" id="2_k4cps"]
+[ext_resource type="Script" uid="uid://lg8p60warjwh" path="res://sprite_2d.gd" id="3_y0xoj"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_p3r8j")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(549, 310)
+texture = ExtResource("2_k4cps")
+script = ExtResource("3_y0xoj")
+
+[node name="Button" type="Button" parent="."]
+offset_left = 78.0
+offset_top = 98.0
+offset_right = 194.0
+offset_bottom = 155.0
+text = "Button"
+
+[connection signal="pressed" from="Button" to="Sprite2D" method="_on_button_pressed"]

@@ -1,0 +1,509 @@
+[gd_scene load_steps=7 format=3 uid="uid://b6v2krx6mh1qj"]
+
+[ext_resource type="PackedScene" uid="uid://3svcwv31yo7b" path="res://Scenes/Player.tscn" id="1_3mqji"]
+[ext_resource type="Script" uid="uid://cbi7vujbir64t" path="res://scripts/UIManager.gd" id="2_ui_manager"]
+[ext_resource type="Script" uid="uid://bdbb6w71woqby" path="res://scripts/DungeonGenerator.gd" id="3_dungeon_generator"]
+[ext_resource type="PackedScene" uid="uid://bxrw8pd2qmqsr" path="res://Scenes/SkillIndicator.tscn" id="4_skill_indicator"]
+[ext_resource type="Script" uid="uid://de4m8x0728qp4" path="res://scripts/GameManager.gd" id="5_game_manager"]
+
+[sub_resource type="GDScript" id="GDScript_skill_overlay"]
+script/source = "extends ColorRect
+
+var skill_ready_color = Color(1, 1, 1, 0.2)  # 技能就绪时的亮色叠加
+var skill_cooldown_color = Color(0, 0, 0, 0.6)  # 技能冷却时的暗色叠加
+var skill_disabled_color = Color(0, 0, 0, 0.8)  # 技能禁用时的更暗叠加
+
+func set_skill_state(state: String):
+	match state:
+		\"ready\":
+			color = skill_ready_color
+		\"cooldown\":
+			color = skill_cooldown_color  
+		\"disabled\":
+			color = skill_disabled_color
+		\"normal\":
+			color = Color(0, 0, 0, 0)
+"
+
+[node name="GameScene" type="Node2D"]
+
+[node name="Player" parent="." instance=ExtResource("1_3mqji")]
+position = Vector2(576, 324)
+
+[node name="DungeonGenerator" type="Node2D" parent="."]
+script = ExtResource("3_dungeon_generator")
+dungeon_width = 5
+dungeon_height = 5
+
+[node name="SkillEffects" type="Node2D" parent="."]
+
+[node name="SkillIndicator" parent="." instance=ExtResource("4_skill_indicator")]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="UIManager" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_ui_manager")
+
+[node name="BottomPanel" type="HBoxContainer" parent="UI/UIManager"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -120.0
+offset_right = 1060.0
+offset_bottom = -20.0
+grow_vertical = 0
+
+[node name="StatusPanel" type="Panel" parent="UI/UIManager/BottomPanel"]
+custom_minimum_size = Vector2(320, 100)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="HealthBar" type="Control" parent="UI/UIManager/BottomPanel/StatusPanel"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 5.0
+offset_right = 160.0
+offset_bottom = 15.0
+
+[node name="HealthBG" type="ColorRect" parent="UI/UIManager/BottomPanel/StatusPanel/HealthBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="HealthFill" type="ColorRect" parent="UI/UIManager/BottomPanel/StatusPanel/HealthBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 1)
+
+[node name="HealthLabel" type="Label" parent="UI/UIManager/BottomPanel/StatusPanel/HealthBar"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ManaBar" type="Control" parent="UI/UIManager/BottomPanel/StatusPanel"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 17.0
+offset_right = 160.0
+offset_bottom = 27.0
+
+[node name="ManaBG" type="ColorRect" parent="UI/UIManager/BottomPanel/StatusPanel/ManaBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.3, 1)
+
+[node name="ManaFill" type="ColorRect" parent="UI/UIManager/BottomPanel/StatusPanel/ManaBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0.5, 1, 1)
+
+[node name="ManaLabel" type="Label" parent="UI/UIManager/BottomPanel/StatusPanel/ManaBar"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerInfo" type="VBoxContainer" parent="UI/UIManager/BottomPanel/StatusPanel"]
+layout_mode = 1
+offset_left = 170.0
+offset_top = 5.0
+offset_right = 320.0
+offset_bottom = 25.0
+
+[node name="LevelLabel" type="Label" parent="UI/UIManager/BottomPanel/StatusPanel/PlayerInfo"]
+layout_mode = 2
+text = "等级 1"
+
+[node name="ExpLabel" type="Label" parent="UI/UIManager/BottomPanel/StatusPanel/PlayerInfo"]
+layout_mode = 2
+text = "经验 0"
+
+[node name="SkillBar" type="HBoxContainer" parent="UI/UIManager/BottomPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Skill1" type="Button" parent="UI/UIManager/BottomPanel/SkillBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StateOverlay" type="ColorRect" parent="UI/UIManager/BottomPanel/SkillBar/Skill1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = SubResource("GDScript_skill_overlay")
+
+[node name="Label" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill1"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "1. 火球术"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill1"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -15.0
+grow_horizontal = 0
+grow_vertical = 0
+horizontal_alignment = 2
+
+[node name="ManaCostLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill1"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -25.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 18.0
+grow_horizontal = 0
+text = "15MP"
+horizontal_alignment = 2
+
+[node name="Skill2" type="Button" parent="UI/UIManager/BottomPanel/SkillBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StateOverlay" type="ColorRect" parent="UI/UIManager/BottomPanel/SkillBar/Skill2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = SubResource("GDScript_skill_overlay")
+
+[node name="Label" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill2"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "2. 冰锥术"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill2"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -15.0
+grow_horizontal = 0
+grow_vertical = 0
+horizontal_alignment = 2
+
+[node name="ManaCostLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill2"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -25.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 18.0
+grow_horizontal = 0
+text = "20MP"
+horizontal_alignment = 2
+
+[node name="Skill3" type="Button" parent="UI/UIManager/BottomPanel/SkillBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StateOverlay" type="ColorRect" parent="UI/UIManager/BottomPanel/SkillBar/Skill3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = SubResource("GDScript_skill_overlay")
+
+[node name="Label" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill3"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "3. 闪电链"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill3"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -15.0
+grow_horizontal = 0
+grow_vertical = 0
+horizontal_alignment = 2
+
+[node name="ManaCostLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill3"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -25.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 18.0
+grow_horizontal = 0
+text = "30MP"
+horizontal_alignment = 2
+
+[node name="Skill4" type="Button" parent="UI/UIManager/BottomPanel/SkillBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StateOverlay" type="ColorRect" parent="UI/UIManager/BottomPanel/SkillBar/Skill4"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = SubResource("GDScript_skill_overlay")
+
+[node name="Label" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill4"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -8.0
+offset_right = 25.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "4. 治疗术"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill4"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -15.0
+grow_horizontal = 0
+grow_vertical = 0
+horizontal_alignment = 2
+
+[node name="ManaCostLabel" type="Label" parent="UI/UIManager/BottomPanel/SkillBar/Skill4"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -25.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 18.0
+grow_horizontal = 0
+text = "25MP"
+horizontal_alignment = 2
+
+[node name="DeathPanel" type="Control" parent="UI"]
+process_mode = 2
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="UI/DeathPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="Panel" parent="UI/DeathPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/DeathPanel/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DeathTitle" type="Label" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "游戏暂停"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DeathMessage" type="Label" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "选择下一步操作"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="ContinueButton" type="Button" parent="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "▶️ 继续游戏"
+
+[node name="RestartButton" type="Button" parent="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "🔄 重新开始"
+
+[node name="QuitButton" type="Button" parent="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "🏠 返回主菜单"
+
+[node name="HSeparator2" type="HSeparator" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="InstructionTitle" type="Label" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "操作说明:"
+horizontal_alignment = 1
+
+[node name="InstructionText" type="Label" parent="UI/DeathPanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "WASD移动探索地牢
+1234选择技能+左键释放
+右键普攻攻击敌人
+ESC取消技能选择"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("5_game_manager")
+
+[connection signal="pressed" from="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer/ContinueButton" to="GameManager" method="continue_game"]
+[connection signal="pressed" from="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer/RestartButton" to="GameManager" method="restart_game"]
+[connection signal="pressed" from="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer/QuitButton" to="GameManager" method="return_to_main_menu"]

@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3 uid="uid://3svcwv31yo7b"]
+
+[ext_resource type="Script" uid="uid://bvbvgkwr4n4ok" path="res://scripts/Player.gd" id="1_kne1u"]
+[ext_resource type="Script" uid="uid://roc6gvwc8go2" path="res://scripts/SkillManager.gd" id="1_xhfnw"]
+[ext_resource type="Texture2D" uid="uid://bqe4pmj4fr7pf" path="res://art/icon.webp" id="2_e80uo"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cxr5p"]
+size = Vector2(40, 40)
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_kne1u")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("2_e80uo")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0.5, 2)
+shape = SubResource("RectangleShape2D_cxr5p")
+
+[node name="SkillManager" type="Node" parent="."]
+script = ExtResource("1_xhfnw")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+limit_left = -100
+limit_top = -100
+limit_right = 6000
+limit_bottom = 4000
+position_smoothing_enabled = true
+position_smoothing_speed = 3.0

@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://dck32jqie10ko"]
+
+[ext_resource type="Script" uid="uid://uhv8vdyiwewf" path="res://scripts/SkillEffect.gd" id="1_rhv5c"]
+[ext_resource type="Texture2D" uid="uid://c1d5pd0mvuxpi" path="res://art/explosion.png" id="2_bcql6"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xftfe"]
+radius = 15.0333
+
+[node name="SkillEffect" type="Area2D"]
+collision_layer = 8
+collision_mask = 7
+script = ExtResource("1_rhv5c")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_xftfe")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_bcql6")
+
+[connection signal="area_entered" from="." to="." method="_on_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

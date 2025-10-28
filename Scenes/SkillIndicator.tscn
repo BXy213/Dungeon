@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bxrw8pd2qmqsr"]
+
+[ext_resource type="Script" uid="uid://d1d6nmrc6g651" path="res://scripts/SkillIndicator.gd" id="1_skill_indicator"]
+
+[node name="SkillIndicator" type="Node2D"]
+z_index = 100
+script = ExtResource("1_skill_indicator")
