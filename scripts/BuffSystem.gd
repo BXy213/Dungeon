@@ -70,6 +70,12 @@ func apply_buff(buff_type: BuffType, duration: float, strength: float = 1.0, sou
 			character_name = owner_character.name
 		print("🔮 ", character_name, " 获得Buff: ", BuffType.keys()[buff_type], " (", duration, "s)")
 		buff_applied.emit(buff_instance)
+		
+		# 显示浮动buff标签
+		if owner_character and owner_character.has_method("show_floating_buff"):
+			var buff_display_name = _get_buff_display_name(buff_type)
+			var is_debuff = (get_buff_category(buff_type) == BuffCategory.DEBUFF)
+			owner_character.show_floating_buff(buff_display_name, is_debuff)
 	
 	return buff_id
 
@@ -201,9 +207,11 @@ func _apply_buff_effect(buff: BuffInstance) -> void:
 	
 	match buff.buff_type:
 		BuffType.SLOW:
-			# 减速效果 - 直接设置is_stunned属性
+			# 减速效果 - 降低移动速度
 			if owner_character:
-				owner_character.is_stunned = false  # 减速不是完全眩晕
+				var new_speed = owner_character.base_speed * (1.0 - buff.strength)
+				owner_character.current_speed = new_speed
+				print("  🐌 减速效果生效: ", owner_character.base_speed, " → ", new_speed, " (减速", int(buff.strength * 100), "%)")
 		
 		BuffType.STUN:
 			# 眩晕效果
@@ -217,6 +225,11 @@ func _apply_buff_effect(buff: BuffInstance) -> void:
 		
 		BuffType.STRENGTHEN:
 			# 攻击强化 - 直接修改攻击力
+			if owner_character:
+				owner_character.current_attack_damage = int(owner_character.base_attack_damage * (1.0 + buff.strength))
+		
+		BuffType.DAMAGE_BOOST:
+			# 伤害增幅 - 提升攻击力（和STRENGTHEN相同）
 			if owner_character:
 				owner_character.current_attack_damage = int(owner_character.base_attack_damage * (1.0 + buff.strength))
 		
@@ -235,6 +248,7 @@ func _remove_buff_effect(buff: BuffInstance) -> void:
 			# 恢复速度
 			if owner_character:
 				owner_character.current_speed = owner_character.base_speed
+				print("  🏃 减速效果移除，速度恢复: ", owner_character.current_speed)
 		
 		BuffType.STUN:
 			# 取消眩晕
@@ -247,6 +261,11 @@ func _remove_buff_effect(buff: BuffInstance) -> void:
 				owner_character.is_silenced = false
 		
 		BuffType.STRENGTHEN:
+			# 恢复攻击力
+			if owner_character:
+				owner_character.current_attack_damage = owner_character.base_attack_damage
+		
+		BuffType.DAMAGE_BOOST:
 			# 恢复攻击力
 			if owner_character:
 				owner_character.current_attack_damage = owner_character.base_attack_damage
@@ -290,6 +309,32 @@ func get_buff_category(buff_type: BuffType) -> BuffCategory:
 			return BuffCategory.BUFF
 		_:
 			return BuffCategory.NEUTRAL
+
+func _get_buff_display_name(buff_type: BuffType) -> String:
+	"""获取Buff的显示名称"""
+	match buff_type:
+		BuffType.SLOW:
+			return "减速"
+		BuffType.STUN:
+			return "眩晕"
+		BuffType.POISON:
+			return "中毒"
+		BuffType.SILENCE:
+			return "沉默"
+		BuffType.STRENGTHEN:
+			return "强化"
+		BuffType.SHIELD:
+			return "护盾"
+		BuffType.REGENERATION:
+			return "生命回复"
+		BuffType.MANA_REGEN:
+			return "魔力回复"
+		BuffType.SPEED_BOOST:
+			return "加速"
+		BuffType.DAMAGE_BOOST:
+			return "增伤"
+		_:
+			return "未知"
 
 ## ========== BuffInstance 内部类 ==========
 

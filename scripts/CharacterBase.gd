@@ -106,6 +106,7 @@ func setup_buff_system() -> void:
 	"""设置Buff系统"""
 	var BuffSystemClass = preload("res://scripts/BuffSystem.gd")
 	buff_system = BuffSystemClass.new(self)
+	buff_system.name = "BuffSystem"  # 设置节点名称，便于查找
 	add_child(buff_system)
 	
 	# 连接Buff信号
@@ -164,6 +165,7 @@ func take_damage(amount: int, source: Node = null) -> void:
 	
 	# 视觉反馈
 	show_damage_effect(actual_damage)
+	show_floating_damage(actual_damage)
 	
 	# 检查死亡
 	if health <= 0:
@@ -183,6 +185,7 @@ func heal(amount: int) -> void:
 		print("💚 ", character_name, " 恢复 ", actual_heal, " 点生命值，当前血量: ", health)
 		health_changed.emit(old_health, health)
 		show_heal_effect(actual_heal)
+		show_floating_heal(actual_heal)
 
 func set_max_health(new_max: int) -> void:
 	"""设置最大生命值"""
@@ -412,6 +415,44 @@ func create_shake_effect() -> void:
 		var offset = Vector2(randf_range(-2, 2), randf_range(-2, 2))
 		shake_tween.tween_property(self, "position", original_pos + offset, 0.05)
 	shake_tween.tween_property(self, "position", original_pos, 0.05)
+
+## ========== 浮动标签系统 ==========
+
+func show_floating_damage(damage: int) -> void:
+	"""显示浮动伤害数字"""
+	# 获取UI层作为父节点
+	var ui_layer = get_tree().current_scene.get_node_or_null("UI")
+	if not ui_layer:
+		print("⚠️ 未找到UI层，无法显示浮动伤害")
+		return
+	
+	# 获取角色上方的世界坐标位置
+	var world_pos = global_position + Vector2(0, -30)
+	FloatingLabel.create_damage_label(damage, ui_layer, world_pos)
+	print("💥 显示浮动伤害: ", damage, " 世界位置: ", world_pos, " 角色: ", character_name)
+
+func show_floating_heal(heal_amount: int) -> void:
+	"""显示浮动治疗数字"""
+	# 获取UI层作为父节点
+	var ui_layer = get_tree().current_scene.get_node_or_null("UI")
+	if not ui_layer:
+		return
+	
+	# 获取角色上方的世界坐标位置
+	var world_pos = global_position + Vector2(0, -30)
+	FloatingLabel.create_heal_label(heal_amount, ui_layer, world_pos)
+
+func show_floating_buff(buff_name: String, is_debuff: bool = false) -> void:
+	"""显示浮动buff提示"""
+	# 获取UI层作为父节点
+	var ui_layer = get_tree().current_scene.get_node_or_null("UI")
+	if not ui_layer:
+		return
+	
+	# 获取角色上方的世界坐标位置（稍微高一点避免和伤害数字重叠）
+	var world_pos = global_position + Vector2(0, -40)
+	FloatingLabel.create_buff_label(buff_name, is_debuff, ui_layer, world_pos)
+	print("✨ 显示浮动Buff: ", buff_name, " 世界位置: ", world_pos, " 角色: ", character_name)
 
 func play_death_effect() -> void:
 	"""播放死亡效果"""

@@ -1,14 +1,14 @@
 class_name MeteorSkill
 extends SkillBase
 
-# 💥 范围轰炸 - AOE技能
+# 💥 陨石术 - AOE技能
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
 	
 	# 设置技能属性
 	skill_id = "meteor"
-	skill_name = "范围轰炸"
+	skill_name = "陨石术"
 	cooldown = 6.0
 	mana_cost = 40
 	max_range = 400.0  # 400像素射程限制
@@ -18,8 +18,8 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	cast_type = SkillCastType.TARGET_AREA
 
 func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
-	"""执行范围轰炸效果"""
-	print("💥 释放范围轰炸到: ", target_position)
+	"""执行陨石术效果"""
+	print("💥 释放陨石术到: ", target_position)
 	
 	# 创建爆炸效果
 	var explosion = create_skill_effect("aoe", target_position)
@@ -36,7 +36,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 			enemy.take_damage(120, player)
 			hit_count += 1
 	
-	print("💥 范围轰炸命中 ", hit_count, " 个敌人，造成 120 点伤害")
+	print("💥 陨石术命中 ", hit_count, " 个敌人，造成 120 点伤害")
 
 func get_skill_indicator_info() -> Dictionary:
 	var info = super.get_skill_indicator_info()

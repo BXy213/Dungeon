@@ -13,7 +13,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	mana_cost = 20
 	max_range = 0.0  # 无射程限制
 	skill_color = Color.CYAN
-	description = "发射冰锥，造成伤害"
+	description = "发射冰锥，造成伤害并减速敌人3秒"
 	cast_type = SkillCastType.TARGET_GROUND
 
 func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
@@ -27,6 +27,11 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	ice_spike.damage = 40
 	ice_spike.max_distance = 600.0
 	ice_spike.life_time = 3.0
+	
+	# 设置命中时的减速buff（50%减速，持续3秒）
+	ice_spike.on_hit_buff_type = BuffSystem.BuffType.SLOW
+	ice_spike.on_hit_buff_duration = 3.0
+	ice_spike.on_hit_buff_strength = 0.5  # 50%减速
 
 func get_skill_indicator_info() -> Dictionary:
 	var info = super.get_skill_indicator_info()

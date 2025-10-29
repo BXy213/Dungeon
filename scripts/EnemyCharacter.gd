@@ -191,7 +191,10 @@ func take_damage(amount: int, source: Node = null) -> void:
 			else:
 				print("⚠️ 未找到GameManager或record_damage方法")
 		else:
-			print("⚠️ 伤害来源不是玩家: ", source.name if source else "null")
+			var source_name: String = "null"
+			if source:
+				source_name = source.name
+			print("⚠️ 伤害来源不是玩家: ", source_name)
 	
 	if is_dead:
 		return
@@ -219,6 +222,9 @@ func take_damage(amount: int, source: Node = null) -> void:
 	
 	# 专门的敌人受伤视觉效果
 	show_enemy_damage_effect(actual_damage, is_continuous_damage)
+	
+	# 显示浮动伤害数字（通用效果）
+	show_floating_damage(actual_damage)
 	
 	# AI逻辑已集成到子类中，无需单独通知
 	

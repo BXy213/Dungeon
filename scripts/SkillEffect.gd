@@ -10,6 +10,11 @@ var traveled_distance: float = 0.0
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
 var source: Node = null  # 技能来源（玩家或敌人）
 
+# Buff相关属性（命中时对目标施加buff）
+var on_hit_buff_type: int = -1  # BuffSystem.BuffType，-1表示无buff
+var on_hit_buff_duration: float = 0.0
+var on_hit_buff_strength: float = 0.0
+
 @onready var sprite = $Sprite2D
 
 func _ready() -> void:
@@ -107,7 +112,7 @@ func _on_body_entered(body: Node2D) -> void:
 	
 	print("📍 弹道检测到碰撞: ", body.name, " 类型: ", body.get_class(), " 弹道类型: ", skill_type)
 	
-	# 首先检查是否为障碍物碰撞
+	# 首先检查是否为阻挡物（障碍物或墙壁）碰撞
 	if is_obstacle_collision(body):
 		handle_obstacle_collision(body)
 		return
@@ -127,6 +132,22 @@ func handle_player_projectile_collision(body: Node2D) -> void:
 		# 传递伤害来源（玩家）
 		body.take_damage(damage, source if source else get_tree().get_first_node_in_group("players"))
 		print("玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害")
+		
+		# 如果有buff信息，对目标施加buff
+		if on_hit_buff_type >= 0:
+			print("  🔍 检查buff应用: buff_type=", on_hit_buff_type, " 目标=", body.name)
+			print("    目标有BuffSystem子节点? ", body.has_node("BuffSystem"))
+			
+			if body.has_node("BuffSystem"):
+				var buff_system = body.get_node("BuffSystem")
+				print("    BuffSystem节点类型: ", buff_system.get_class())
+				if buff_system.has_method("apply_buff"):
+					buff_system.apply_buff(on_hit_buff_type, on_hit_buff_duration, on_hit_buff_strength, source)
+					print("  ✨ 成功对 ", body.name, " 施加Buff: ", on_hit_buff_type)
+				else:
+					print("  ⚠️ BuffSystem没有apply_buff方法")
+			else:
+				print("  ⚠️ 目标没有BuffSystem节点，目标子节点: ", body.get_children())
 		
 		# 延迟禁用碰撞检测，避免物理引擎冲突
 		set_deferred("monitoring", false)
@@ -193,25 +214,42 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 	else:
 		get_tree().current_scene.add_child(impact)
 
-## ========== 障碍物碰撞处理 ==========
+## ========== 阻挡物碰撞处理（障碍物 + 墙壁） ==========
 
 func is_obstacle_collision(body: Node2D) -> bool:
-	"""检查是否为障碍物碰撞"""
-	# 检查是否为障碍物（StaticBody2D类型且有obstacle_type属性）
-	var is_obstacle = body is StaticBody2D and body.has_method("get_obstacle_type")
-	if is_obstacle:
-		print("✅ 确认为障碍物: ", body.name)
+	"""检查是否为障碍物或墙壁碰撞"""
+	if not body is StaticBody2D:
+		return false
+	
+	# 检查是否为障碍物（有obstacle_type方法）
+	var is_obstacle = body.has_method("get_obstacle_type")
+	
+	# 检查是否为房间墙壁（名称包含"RoomWall"）
+	var is_wall = body.name.begins_with("RoomWall")
+	
+	var is_blocking = is_obstacle or is_wall
+	
+	if is_blocking:
+		if is_wall:
+			print("✅ 确认为房间墙壁: ", body.name)
+		else:
+			print("✅ 确认为障碍物: ", body.name)
 	else:
-		print("❌ 不是障碍物: ", body.name, " 类型: ", body.get_class())
-	return is_obstacle
+		print("❌ 不是障碍物或墙壁: ", body.name, " 类型: ", body.get_class())
+	
+	return is_blocking
 
 func handle_obstacle_collision(body: Node2D) -> void:
-	"""处理障碍物碰撞"""
-	var obstacle_type = "unknown"
-	if body.has_method("get_obstacle_type"):
-		obstacle_type = body.get_obstacle_type()
+	"""处理障碍物或墙壁碰撞"""
+	var collision_type = "unknown"
 	
-	print("🧱 弹道碰撞到障碍物: ", body.name, " 类型: ", obstacle_type, " 弹道类型: ", skill_type)
+	# 判断是墙壁还是障碍物
+	if body.name.begins_with("RoomWall"):
+		collision_type = "wall"
+	elif body.has_method("get_obstacle_type"):
+		collision_type = body.get_obstacle_type()
+	
+	print("🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type)
 	
 	# 延迟禁用碰撞检测，避免物理引擎冲突
 	set_deferred("monitoring", false)
