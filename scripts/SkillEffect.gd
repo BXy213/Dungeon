@@ -99,11 +99,18 @@ func _physics_process(delta: float) -> void:
 		if traveled_distance >= max_distance:
 			queue_free()
 
-func _on_area_entered(_area: Area2D) -> void:
-	# 碰撞检测 - 可以在这里处理伤害
-	if skill_type == "projectile":
-		print("技能命中目标! 造成 ", damage, " 点伤害")
-		queue_free()
+func _on_area_entered(area: Area2D) -> void:
+	"""处理Area2D碰撞（弹道之间不应相互碰撞）"""
+	# 检查是否为弹道碰撞（通过检查是否有skill_type属性）
+	if "skill_type" in area:
+		var other_skill_type = area.skill_type
+		if other_skill_type in ["projectile", "enemy_projectile"]:
+			print("🔄 弹道相遇，互相穿过: ", skill_type, " vs ", other_skill_type)
+			return  # 弹道之间不碰撞，互相穿过
+	
+	# 其他Area2D碰撞处理（如果需要的话）
+	# 目前所有实际碰撞都通过body_entered处理
+	# 这里可以用于处理特殊的Area碰撞逻辑
 
 func _on_body_entered(body: Node2D) -> void:
 	# instant 类型的技能不应该进行碰撞检测（它们是静态特效）

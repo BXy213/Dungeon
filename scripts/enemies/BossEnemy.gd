@@ -29,7 +29,7 @@ func _init():
 	health = 400
 	base_speed = 50.0  # 移动较慢
 	base_attack_damage = 25
-	attack_range = 180.0
+	attack_range = 500.0
 	attack_cooldown = 2.5
 	experience_reward = 200
 	
@@ -269,9 +269,9 @@ func summon_minions() -> void:
 		print("    近战小兵可见性: ", melee_soldier.visible)
 		
 		# 检查Sprite是否存在
-		var sprite = melee_soldier.get_node_or_null("Sprite2D")
-		if sprite:
-			print("    Sprite2D: 存在, 可见:", sprite.visible, ", modulate:", sprite.modulate)
+		var melee_soldier_sprite = melee_soldier.get_node_or_null("Sprite2D")
+		if melee_soldier_sprite:
+			print("    Sprite2D: 存在, 可见:", melee_soldier_sprite.visible, ", modulate:", melee_soldier_sprite.modulate)
 		else:
 			print("    Sprite2D: 不存在")
 		
@@ -303,9 +303,9 @@ func summon_minions() -> void:
 		print("    远程小兵可见性: ", ranged_soldier.visible)
 		
 		# 检查Sprite是否存在
-		var sprite = ranged_soldier.get_node_or_null("Sprite2D")
-		if sprite:
-			print("    Sprite2D: 存在, 可见:", sprite.visible, ", modulate:", sprite.modulate)
+		var ranged_soldier_sprite = ranged_soldier.get_node_or_null("Sprite2D")
+		if ranged_soldier_sprite:
+			print("    Sprite2D: 存在, 可见:", ranged_soldier_sprite.visible, ", modulate:", ranged_soldier_sprite.modulate)
 		else:
 			print("    Sprite2D: 不存在")
 		

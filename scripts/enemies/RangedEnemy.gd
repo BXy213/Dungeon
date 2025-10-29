@@ -25,7 +25,7 @@ func _init():
 	health = 60
 	base_speed = 70.0
 	base_attack_damage = 10
-	attack_range = 150.0
+	attack_range = 500.0
 	attack_cooldown = 1.5
 	experience_reward = 35
 	
