@@ -152,6 +152,48 @@ func take_damage(amount: int, source: Node = null) -> void:
 	
 	# 计算实际伤害（考虑防御）
 	var actual_damage = max(1, amount - current_defense)
+	
+	# ❄️ 检查伤害减免buff（DAMAGE_REDUCTION 和 FROST_ARMOR）
+	if buff_system:
+		var damage_reduction: float = 0.0
+		var has_frost_armor: bool = false
+		var frost_armor_slow_strength: float = 0.0
+		
+		for buff in buff_system.active_buffs.values():
+			if buff.buff_type == BuffSystem.BuffType.DAMAGE_REDUCTION:
+				# 获取减伤百分比，取最高的
+				damage_reduction = max(damage_reduction, buff.strength)
+			if buff.buff_type == BuffSystem.BuffType.FROST_ARMOR:
+				# 寒冰护甲也提供伤害减免（从技能参数获取）
+				has_frost_armor = true
+				# 从FrostArmorSkill获取减伤强度（默认0.3，即30%）
+				damage_reduction = max(damage_reduction, 0.3)  # 寒冰护甲固定30%减伤
+				frost_armor_slow_strength = 0.4  # 反击减速40%
+		
+		# 应用伤害减免
+		if damage_reduction > 0.0:
+			var reduced_damage = int(actual_damage * (1.0 - damage_reduction))
+			print("  🛡️ 伤害减免生效: ", actual_damage, " → ", reduced_damage, " (减免", int(damage_reduction * 100), "%)")
+			actual_damage = reduced_damage
+		
+		if has_frost_armor:
+			if source:
+				print("  ❄️ 寒冰护甲应该反击: ", source.character_name)
+			else:
+				print("  ❄️ 寒冰护甲应该反击: 没有source")
+
+		# 寒冰护甲反击：对攻击者施加减速
+		if has_frost_armor and source:
+			# ✅ 检查source是否是Character类型并且有BuffSystem
+			if source is CharacterBase or (source.has_method("get_node_or_null") and source.get_node_or_null("BuffSystem")):
+				var source_buff_system = source.get_node_or_null("BuffSystem")
+				if source_buff_system and source_buff_system.has_method("apply_buff"):
+					source_buff_system.apply_buff(BuffSystem.BuffType.SLOW, 2.0, frost_armor_slow_strength, self)
+					var source_name = source.character_name if "character_name" in source else source.name
+					print("  ❄️ 寒冰护甲反击: ", source_name, " 被减速 ", int(frost_armor_slow_strength * 100), "%")
+				else:
+					print("  ⚠️ 攻击者没有有效的BuffSystem: ", source.name)
+	
 	var old_health = health
 	
 	health -= actual_damage
@@ -393,19 +435,26 @@ func respawn() -> void:
 
 func show_damage_effect(_amount: int) -> void:
 	"""显示受伤效果（默认实现，子类可重写）"""
-	# 基础闪烁效果 - 使用更温和的效果
-	var damage_tween = create_tween()
-	damage_tween.tween_property(self, "modulate", Color(1.0, 0.8, 0.8, 1.0), 0.08)
-	damage_tween.tween_property(self, "modulate", Color.WHITE, 0.12)
+	# ✅ 修复：只修改Sprite2D的颜色，保留角色原本设定的颜色
+	var character_sprite = get_node_or_null("Sprite2D")
+	if character_sprite:
+		var original_color = character_sprite.modulate
+		var damage_tween = create_tween()
+		damage_tween.tween_property(character_sprite, "modulate", Color(1.0, 0.5, 0.5, 1.0), 0.08)
+		damage_tween.tween_property(character_sprite, "modulate", original_color, 0.12)
 	
 	# 震动效果
 	create_shake_effect()
 
 func show_heal_effect(_amount: int) -> void:
 	"""显示治疗效果"""
-	var heal_tween = create_tween()
-	heal_tween.tween_property(self, "modulate", Color.GREEN, 0.2)
-	heal_tween.tween_property(self, "modulate", Color.WHITE, 0.2)
+	# ✅ 修复：只修改Sprite2D的颜色，保留角色原本设定的颜色
+	var character_sprite = get_node_or_null("Sprite2D")
+	if character_sprite:
+		var original_color = character_sprite.modulate
+		var heal_tween = create_tween()
+		heal_tween.tween_property(character_sprite, "modulate", Color(0.5, 1.0, 0.5, 1.0), 0.15)
+		heal_tween.tween_property(character_sprite, "modulate", original_color, 0.15)
 
 func create_shake_effect() -> void:
 	"""创建震动效果"""
@@ -456,9 +505,16 @@ func show_floating_buff(buff_name: String, is_debuff: bool = false) -> void:
 
 func play_death_effect() -> void:
 	"""播放死亡效果"""
-	var death_tween = create_tween()
-	death_tween.parallel().tween_property(self, "modulate:a", 0.3, 0.5)
-	death_tween.parallel().tween_property(self, "scale", Vector2(0.8, 0.8), 0.5)
+	# ✅ 修复：使用Sprite2D的透明度和缩放，而不是整个节点（避免影响碰撞盒）
+	var character_sprite = get_node_or_null("Sprite2D")
+	if character_sprite:
+		# 记录当前scale，然后缩小到80%
+		var original_scale = character_sprite.scale
+		var target_scale = original_scale * 0.8  # 缩小到原来的80%
+		
+		var death_tween = create_tween()
+		death_tween.parallel().tween_property(character_sprite, "modulate:a", 0.3, 0.5)
+		death_tween.parallel().tween_property(character_sprite, "scale", target_scale, 0.5)
 
 ## ========== 回调方法 ==========
 

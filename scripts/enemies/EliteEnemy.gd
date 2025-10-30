@@ -21,7 +21,7 @@ func _init():
 	# 设置精英战士属性
 	character_name = "精英战士"
 	max_health = 200
-	health = 150
+	health = max_health  # ✅ 修复：初始血量应等于最大血量
 	base_speed = 85.0
 	base_attack_damage = 20
 	attack_range = 150.0
@@ -74,8 +74,11 @@ func setup_enemy_nodes() -> void:
 
 func setup_visuals() -> void:
 	"""设置精英战士视觉效果"""
-	# 节点在setup_enemy_nodes中创建，这里可以进行额外的视觉调整
-	pass
+	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
+	var elite_sprite = get_node_or_null("Sprite2D")
+	if elite_sprite:
+		elite_sprite.modulate = Color.ORANGE  # 橙色
+		print("  ✓ 精英战士贴图颜色已设置为橙色")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

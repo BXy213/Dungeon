@@ -6,7 +6,6 @@ extends Node
 var all_skill_classes = {
 	"fireball": "res://scripts/skills/FireballSkill.gd",
 	"ice_spike": "res://scripts/skills/IceSpikeSkill.gd",
-	"lightning": "res://scripts/skills/LightningSkill.gd",
 	"heal": "res://scripts/skills/HealSkill.gd",
 	"meteor": "res://scripts/skills/MeteorSkill.gd",
 	"snipe": "res://scripts/skills/SnipeSkill.gd",
@@ -15,7 +14,17 @@ var all_skill_classes = {
 	"poison_shot": "res://scripts/skills/PoisonShotSkill.gd",
 	"swift_strike": "res://scripts/skills/SwiftStrikeSkill.gd",
 	"tornado": "res://scripts/skills/TornadoSkill.gd",
-	"sonic_wave": "res://scripts/skills/SonicWaveSkill.gd"
+	"sonic_wave": "res://scripts/skills/SonicWaveSkill.gd",
+	# 🎮 新增技能 - 参考DOTA/LOL经典技能
+	"blink": "res://scripts/skills/BlinkSkill.gd",
+	"drain_life": "res://scripts/skills/DrainLifeSkill.gd",
+	"chain_lightning": "res://scripts/skills/ChainLightningSkill.gd",
+	"flame_storm": "res://scripts/skills/FlameStormSkill.gd",
+	# 🎯 更多MOBA技能
+	"frost_armor": "res://scripts/skills/FrostArmorSkill.gd",
+	"split_shot": "res://scripts/skills/SplitShotSkill.gd",
+	"shockwave": "res://scripts/skills/ShockwaveSkill.gd",
+	"void_prison": "res://scripts/skills/VoidPrisonSkill.gd"
 }
 
 # 🎮 玩家激活的技能实例（最多4个，可以为null）

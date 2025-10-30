@@ -81,13 +81,19 @@ func handle_auto_cast_skill() -> void:
 	"""处理自动释放技能"""
 	print("🚀 自动释放技能: ", selected_skill.skill_name)
 	
-	transition_to_state(PlayerState.SKILL_CASTING)
-	
-	# 调用技能的选中方法（会自动释放）
-	selected_skill.on_skill_selected()
-	
-	# 释放完成，返回空闲状态
-	call_deferred("finish_skill_cast")
+	# ✅ AUTO_CAST技能直接释放
+	if selected_skill.can_cast():
+		transition_to_state(PlayerState.SKILL_CASTING)
+		
+		# 调用cast_skill立即释放技能
+		selected_skill.cast_skill(player.global_position, null)
+		
+		# 释放完成，返回空闲状态
+		call_deferred("finish_skill_cast")
+	else:
+		# 无法释放（冷却中或魔法不足），取消选择
+		print("  ❌ 无法释放技能")
+		cancel_skill_selection()
 
 func enter_skill_targeting_state() -> void:
 	"""进入技能瞄准状态"""

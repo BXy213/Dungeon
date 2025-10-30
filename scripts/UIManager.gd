@@ -37,8 +37,12 @@ var skill_manager = null
 @onready var health_label = $BottomPanel/StatusPanel/HealthBar/HealthLabel
 @onready var mana_bar = $BottomPanel/StatusPanel/ManaBar/ManaFill
 @onready var mana_label = $BottomPanel/StatusPanel/ManaBar/ManaLabel
+@onready var exp_bar = $BottomPanel/StatusPanel/ExpBar/ExpFill
+@onready var exp_label = $BottomPanel/StatusPanel/ExpBar/ExpLabel
 @onready var level_label = $BottomPanel/StatusPanel/PlayerInfo/LevelLabel
-@onready var exp_label = $BottomPanel/StatusPanel/PlayerInfo/ExpLabel
+@onready var attack_label = $BottomPanel/StatusPanel/PlayerStats/AttackLabel
+@onready var defense_label = $BottomPanel/StatusPanel/PlayerStats/DefenseLabel
+@onready var speed_label = $BottomPanel/StatusPanel/PlayerStats/SpeedLabel
 
 # 技能视觉效果UI - 状态叠加
 @onready var state_overlays = [
@@ -213,9 +217,19 @@ func update_player_status_ui() -> void:
 	mana_bar.scale.x = mana_percent
 	mana_label.text = str(player.mana) + "/" + str(player.max_mana)
 	
-	# 更新等级和经验
+	# ✅ 更新经验条（与血条和魔法条逻辑完全一致）
+	var required_exp = player.get_required_experience_for_level(player.level + 1)
+	var exp_percent = float(player.experience) / float(required_exp)
+	exp_bar.scale.x = clamp(exp_percent, 0.0, 1.0)
+	exp_label.text = str(player.experience) + " / " + str(required_exp)
+	
+	# 更新等级
 	level_label.text = "等级 " + str(player.level)
-	exp_label.text = "经验 " + str(player.experience)
+	
+	# ✅ 更新玩家属性
+	attack_label.text = "攻击: " + str(player.current_attack_damage)
+	defense_label.text = "防御: " + str(player.current_defense)
+	speed_label.text = "速度: " + str(int(player.current_speed))
 
 # 操作教程已移除，现在在暂停面板中显示
 

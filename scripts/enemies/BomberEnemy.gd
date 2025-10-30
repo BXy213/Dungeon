@@ -1,0 +1,209 @@
+extends "res://scripts/EnemyCharacter.gd"
+class_name BomberEnemy
+
+# 💣 自爆兵 - 死亡时爆炸（参考DOTA特克斯/LOL炼金男爵虫子）
+
+## ========== 自爆兵特有属性 ==========
+
+var explosion_radius: float = 200.0  # 爆炸范围
+var explosion_damage_multiplier: float = 2.0  # 爆炸伤害倍率（基于攻击力）
+var chase_speed_boost: float = 1.3  # 追击时速度提升
+
+func _init():
+	super._init()
+	
+	# 设置自爆兵属性
+	character_name = "自爆兵"
+	max_health = 60  # 血量较低
+	health = max_health  # ✅ 修复：初始血量应等于最大血量
+	base_speed = 100.0  # 移速较快
+	base_attack_damage = 15  # 爆炸伤害会更高
+	attack_range = 100.0  # 近身引爆
+	attack_cooldown = 999.0  # 不使用普通攻击
+	experience_reward = 40
+	
+	# 更新当前属性
+	current_speed = base_speed
+	current_attack_damage = base_attack_damage
+
+func _ready():
+	super._ready()
+	
+	print("💣 自爆兵 _ready() 被调用，位置: ", global_position)
+	
+	# 确保节点已创建
+	var existing_sprite = get_node_or_null("Sprite2D")
+	if existing_sprite == null:
+		setup_enemy_nodes()
+	
+	# 定期查找目标
+	var target_timer = Timer.new()
+	target_timer.wait_time = 0.3
+	target_timer.timeout.connect(_find_target)
+	target_timer.autostart = true
+	add_child(target_timer)
+	
+	print("💣 自爆兵 _ready() 完成")
+
+func setup_enemy_nodes() -> void:
+	"""创建自爆兵节点"""
+	print("🔨 自爆兵正在创建节点...")
+	
+	# 创建Sprite2D节点（发光效果）
+	var bomber_sprite = Sprite2D.new()
+	bomber_sprite.name = "Sprite2D"
+	bomber_sprite.texture = preload("res://art/icon.webp")
+	bomber_sprite.modulate = Color(1.0, 0.5, 0.0)  # 橙色，像炸弹
+	bomber_sprite.scale = Vector2(0.35, 0.35)
+	add_child(bomber_sprite)
+	print("  ✓ Sprite2D已创建")
+	
+	# 添加脉冲动画（像定时炸弹）
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(bomber_sprite, "modulate:a", 0.5, 0.5)
+	tween.tween_property(bomber_sprite, "modulate:a", 1.0, 0.5)
+	
+	# 创建CollisionShape2D节点
+	var collision_shape = CollisionShape2D.new()
+	collision_shape.name = "CollisionShape2D"
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(14, 14)
+	collision_shape.shape = shape
+	add_child(collision_shape)
+	
+	# 创建血条
+	create_health_bar()
+	print("  ✓ 血条已创建")
+	
+	print("💣 自爆兵节点创建完成")
+
+func setup_visuals() -> void:
+	"""设置自爆兵视觉效果"""
+	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
+	var bomber_sprite = get_node_or_null("Sprite2D")
+	if bomber_sprite:
+		bomber_sprite.modulate = Color(1.0, 0.5, 0.0)  # 橙色
+		print("  ✓ 自爆兵贴图颜色已设置为橙色")
+		
+		# 重新创建脉冲动画
+		var tween = create_tween()
+		tween.set_loops()
+		tween.tween_property(bomber_sprite, "modulate:a", 0.5, 0.5)
+		tween.tween_property(bomber_sprite, "modulate:a", 1.0, 0.5)
+
+## ========== 自爆兵AI行为 ==========
+
+var current_target: Node = null
+var detection_range: float = 500.0
+var detonate_range: float = 80.0  # 引爆距离
+
+func _find_target():
+	"""寻找玩家目标"""
+	if is_dead:
+		return
+	
+	var player = get_tree().get_first_node_in_group("players")
+	if player:
+		var distance = global_position.distance_to(player.global_position)
+		if distance <= detection_range:
+			current_target = player
+			
+			# 如果非常接近，立即引爆
+			if distance <= detonate_range:
+				_detonate()
+
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
+	
+	if is_dead or not current_target:
+		return
+	
+	var distance_to_target = get_distance_to(current_target)
+	
+	# 检查是否在引爆范围内
+	if distance_to_target <= detonate_range:
+		_detonate()
+	else:
+		# 快速冲向目标
+		execute_chase_behavior()
+
+## ========== 自爆逻辑 ==========
+
+func _detonate() -> void:
+	"""引爆自己"""
+	if is_dead:
+		return
+	
+	print("💣 自爆兵引爆! 位置: ", global_position)
+	
+	# 创建爆炸视觉效果
+	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
+	var explosion = SkillEffectScene.instantiate()
+	explosion.global_position = global_position
+	explosion.skill_type = "aoe"
+	explosion.skill_radius = explosion_radius
+	explosion.damage = int(current_attack_damage * explosion_damage_multiplier)
+	explosion.life_time = 1.0
+	explosion.modulate = Color(1.0, 0.3, 0.0, 0.8)
+	get_tree().current_scene.add_child(explosion)
+	explosion.initialize()
+	
+	# 对范围内所有目标造成伤害
+	var targets_in_range = _find_targets_in_explosion()
+	var explosion_damage = int(current_attack_damage * explosion_damage_multiplier)
+	
+	for target in targets_in_range:
+		if target.has_method("take_damage"):
+			target.take_damage(explosion_damage, self)
+			print("  💥 爆炸伤害: ", target.name, " 受到 ", explosion_damage, " 点伤害")
+	
+	# 自己死亡（不触发二次爆炸）
+	is_dead = true
+	queue_free()
+
+func _find_targets_in_explosion() -> Array:
+	"""查找爆炸范围内的目标"""
+	var targets = []
+	
+	# 检查玩家
+	var player = get_tree().get_first_node_in_group("players")
+	if player and not player.is_dead:
+		var distance = global_position.distance_to(player.global_position)
+		if distance <= explosion_radius:
+			targets.append(player)
+	
+	# 可以选择是否伤害其他敌人（目前不伤害队友）
+	# var enemies = get_tree().get_nodes_in_group("enemies")
+	# for enemy in enemies:
+	#     if enemy != self and not enemy.is_dead:
+	#         var distance = global_position.distance_to(enemy.global_position)
+	#         if distance <= explosion_radius:
+	#             targets.append(enemy)
+	
+	return targets
+
+## ========== 重写死亡逻辑 ==========
+
+func die() -> void:
+	"""死亡时引爆"""
+	if is_dead:
+		return
+	
+	print("💣 自爆兵被击杀，触发爆炸!")
+	_detonate()
+	# 不调用super.die()，因为_detonate()会处理死亡
+
+## ========== 攻击和追击行为 ==========
+
+func execute_attack_behavior() -> void:
+	"""自爆兵不使用普通攻击"""
+	pass
+
+func execute_chase_behavior() -> void:
+	"""快速冲向目标"""
+	if current_target:
+		var direction = (current_target.global_position - global_position).normalized()
+		velocity = direction * current_speed * chase_speed_boost
+		move_and_slide()
+

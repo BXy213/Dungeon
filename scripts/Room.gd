@@ -349,7 +349,7 @@ func create_enemy_by_type_from_data(enemy_data: Dictionary) -> Node:
 	var enemy_type_string = ""
 	
 	# 确定敌人类型
-	if enemy_data.has("enemy_type"):
+	if "enemy_type" in enemy_data:
 		# 新版本有enemy_type字段
 		match enemy_data.enemy_type:
 			0: # MELEE_SOLDIER

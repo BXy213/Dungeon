@@ -250,9 +250,9 @@ func handle_enemy_projectile_collision(body: Node2D) -> void:
 	print("    最终判定是否为玩家: ", is_player)
 	
 	if is_player:
-		# 造成伤害
-		body.take_damage(damage)
-		print("敌人弹道命中玩家，造成 ", damage, " 点伤害")
+		# 造成伤害（✅ 传递source用于寒冰护甲反击等）
+		body.take_damage(damage, source)
+		print("敌人弹道命中玩家，造成 ", damage, " 点伤害 (来源: ", source.name if source else "无", ")")
 		
 		# 显示伤害数字
 		if body.has_method("show_damage_number"):

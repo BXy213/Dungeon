@@ -5,16 +5,18 @@ extends Node
 
 ## Buff类型枚举
 enum BuffType {
-	SLOW,           # 减速
-	STUN,           # 眩晕
-	POISON,         # 中毒
-	SILENCE,        # 沉默
-	STRENGTHEN,     # 强化攻击
-	SHIELD,         # 护盾
-	REGENERATION,   # 生命回复
-	MANA_REGEN,     # 魔法回复
-	SPEED_BOOST,    # 加速
-	DAMAGE_BOOST    # 伤害增幅
+	SLOW,              # 减速
+	STUN,              # 眩晕
+	POISON,            # 中毒
+	SILENCE,           # 沉默
+	STRENGTHEN,        # 强化攻击
+	SHIELD,            # 护盾
+	REGENERATION,      # 生命回复
+	MANA_REGEN,        # 魔法回复
+	SPEED_BOOST,       # 加速
+	DAMAGE_BOOST,      # 伤害增幅
+	DAMAGE_REDUCTION,  # 伤害减免（通用）
+	FROST_ARMOR        # 寒冰护甲（减伤+反击减速）
 }
 
 ## Buff效果分类
@@ -237,6 +239,16 @@ func _apply_buff_effect(buff: BuffInstance) -> void:
 			# 加速效果 - 直接修改速度
 			if owner_character:
 				owner_character.current_speed = owner_character.base_speed * (1.0 + buff.strength)
+		
+		BuffType.DAMAGE_REDUCTION:
+			# 伤害减免 - 标记生效，在take_damage中检查
+			if owner_character:
+				print("  🛡️ 伤害减免效果生效: 减少", int(buff.strength * 100), "% 受到的伤害")
+		
+		BuffType.FROST_ARMOR:
+			# 寒冰护甲 - 减伤+反击减速效果，在take_damage中检查
+			if owner_character:
+				print("  ❄️ 寒冰护甲效果生效: 减伤并反击减速")
 
 func _remove_buff_effect(buff: BuffInstance) -> void:
 	"""移除Buff效果"""
@@ -274,6 +286,16 @@ func _remove_buff_effect(buff: BuffInstance) -> void:
 			# 恢复速度
 			if owner_character:
 				owner_character.current_speed = owner_character.base_speed
+		
+		BuffType.DAMAGE_REDUCTION:
+			# 移除伤害减免
+			if owner_character:
+				print("  🛡️ 伤害减免效果移除")
+		
+		BuffType.FROST_ARMOR:
+			# 移除寒冰护甲
+			if owner_character:
+				print("  ❄️ 寒冰护甲效果移除")
 
 func _apply_continuous_effect(buff: BuffInstance) -> void:
 	"""应用持续性效果（每0.5秒触发）"""
@@ -305,7 +327,7 @@ func get_buff_category(buff_type: BuffType) -> BuffCategory:
 	match buff_type:
 		BuffType.SLOW, BuffType.STUN, BuffType.POISON, BuffType.SILENCE:
 			return BuffCategory.DEBUFF
-		BuffType.STRENGTHEN, BuffType.SHIELD, BuffType.REGENERATION, BuffType.MANA_REGEN, BuffType.SPEED_BOOST, BuffType.DAMAGE_BOOST:
+		BuffType.STRENGTHEN, BuffType.SHIELD, BuffType.REGENERATION, BuffType.MANA_REGEN, BuffType.SPEED_BOOST, BuffType.DAMAGE_BOOST, BuffType.DAMAGE_REDUCTION, BuffType.FROST_ARMOR:
 			return BuffCategory.BUFF
 		_:
 			return BuffCategory.NEUTRAL
@@ -333,6 +355,10 @@ func _get_buff_display_name(buff_type: BuffType) -> String:
 			return "加速"
 		BuffType.DAMAGE_BOOST:
 			return "增伤"
+		BuffType.DAMAGE_REDUCTION:
+			return "伤害减免"
+		BuffType.FROST_ARMOR:
+			return "寒冰护甲"
 		_:
 			return "未知"
 

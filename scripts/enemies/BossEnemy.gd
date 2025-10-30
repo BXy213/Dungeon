@@ -26,7 +26,7 @@ func _init():
 	# 设置BOSS属性
 	character_name = "BOSS"
 	max_health = 400
-	health = 400
+	health = max_health  # ✅ 修复：初始血量应等于最大血量
 	base_speed = 50.0  # 移动较慢
 	base_attack_damage = 25
 	attack_range = 500.0
@@ -79,8 +79,11 @@ func setup_enemy_nodes() -> void:
 
 func setup_visuals() -> void:
 	"""设置BOSS视觉效果"""
-	# 节点在setup_enemy_nodes中创建，这里可以进行额外的视觉调整
-	pass
+	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
+	var boss_sprite = get_node_or_null("Sprite2D")
+	if boss_sprite:
+		boss_sprite.modulate = Color.PURPLE  # 紫色
+		print("  ✓ BOSS贴图颜色已设置为紫色")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

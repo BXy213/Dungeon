@@ -118,6 +118,7 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 	projectile.life_time = 3.0
 	projectile.collision_layer = 4  # 敌人弹道层
 	projectile.collision_mask = 3   # 检测玩家层(2) + 障碍物层(1) = 3
+	projectile.source = self  # ✅ 设置弹道来源为敌人自己（用于寒冰护甲反击等）
 	
 	# 设置弹道外观（由子类重写）
 	set_projectile_appearance(projectile)
