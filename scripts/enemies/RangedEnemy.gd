@@ -13,7 +13,7 @@ var strafe_direction: Vector2 = Vector2.ZERO
 
 # AI行为属性
 var current_target: Node = null
-var detection_range: float = 300.0
+var detection_range: float = 500.0
 var lose_target_distance: float = 400.0
 
 func _init():
@@ -21,7 +21,7 @@ func _init():
 	
 	# 设置远程小兵属性
 	character_name = "远程小兵"
-	max_health = 60
+	max_health = 80
 	health = 60
 	base_speed = 70.0
 	base_attack_damage = 10

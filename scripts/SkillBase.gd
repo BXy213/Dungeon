@@ -148,14 +148,18 @@ func is_position_in_range(target_position: Vector2) -> bool:
 	return true
 
 func create_skill_effect(effect_type: String, position: Vector2) -> Node:
-	"""创建技能效果节点"""
+	"""创建技能效果节点
+	
+	⚠️ 重要：effect创建后不会立即添加到场景！
+	调用者必须在设置完所有属性后调用 effect.initialize() 来完成初始化。
+	"""
 	var effect = preload("res://Scenes/SkillEffect.tscn").instantiate()
 	effect.global_position = position
 	effect.modulate = skill_color
 	effect.skill_type = effect_type
 	effect.source = player  # 设置技能来源为玩家
 	
-	# 添加到技能效果容器
+	# 添加到场景但延迟初始化
 	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")
 	if skill_effects:
 		skill_effects.add_child(effect)

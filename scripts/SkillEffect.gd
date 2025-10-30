@@ -8,6 +8,7 @@ var damage: int = 0
 var skill_type: String = "projectile"
 var traveled_distance: float = 0.0
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
+var skill_width: float = 0.0  # 技能宽度（用于定向技能如龙卷风、声波）
 var source: Node = null  # 技能来源（玩家或敌人）
 
 # Buff相关属性（命中时对目标施加buff）
@@ -15,13 +16,37 @@ var on_hit_buff_type: int = -1  # BuffSystem.BuffType，-1表示无buff
 var on_hit_buff_duration: float = 0.0
 var on_hit_buff_strength: float = 0.0
 
+# 已命中的目标列表（用于"穿透但每个敌人只命中一次"的技能）
+var hit_targets: Array = []
+
 @onready var sprite = $Sprite2D
+@onready var collision_shape = $CollisionShape2D
+
+# 标记是否已初始化（避免重复初始化）
+var _is_initialized: bool = false
 
 func _ready() -> void:
+	# 不在这里初始化，等待调用者设置完属性后调用initialize()
+	pass
+
+func initialize() -> void:
+	"""在设置完所有属性后调用此函数进行初始化"""
+	if _is_initialized:
+		return
+	_is_initialized = true
+	
+	# 如果有技能宽度，设置碰撞盒为矩形
+	if skill_width > 0:
+		setup_directional_collision()
+	
+	# 所有弹道类技能（projectile, tornado, sonic_wave, enemy_projectile）都需要旋转
+	if is_projectile_type():
+		update_rotation()
+	
 	# 根据技能类型设置不同行为
 	match skill_type:
-		"projectile":
-			setup_projectile()
+		"projectile", "tornado", "sonic_wave":
+			setup_projectile_skill()
 		"enemy_projectile":
 			setup_enemy_projectile()
 		"instant":
@@ -34,12 +59,44 @@ func _ready() -> void:
 			setup_targeted()
 	
 	# 自动销毁
-	await get_tree().create_timer(life_time).timeout
-	queue_free()
+	get_tree().create_timer(life_time).timeout.connect(queue_free)
 
-func setup_projectile() -> void:
-	# 投射物技能 - 需要移动
-	pass
+func is_projectile_type() -> bool:
+	"""检查是否为弹道类技能"""
+	return skill_type in ["projectile", "tornado", "sonic_wave", "enemy_projectile"]
+
+func setup_projectile_skill() -> void:
+	"""设置弹道技能（包括普通弹道、龙卷风、声波等）"""
+	# 如果有技能宽度，调整贴图缩放
+	if sprite and skill_width > 0:
+		# 调整精灵的Y轴缩放以匹配技能宽度
+		# 假设原始贴图高度是32像素
+		var original_height = 32.0
+		var scale_y = skill_width / original_height
+		var scale_x = sprite.scale.x  # 保持X轴的原始缩放
+		sprite.scale = Vector2(scale_x, scale_y)
+		
+		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (宽度: ", skill_width, ")")
+
+func setup_directional_collision() -> void:
+	"""设置定向碰撞盒（矩形，朝向发射方向）"""
+	if not collision_shape:
+		return
+	
+	# 创建矩形碰撞盒
+	var rect_shape = RectangleShape2D.new()
+	# 长度固定为30像素，宽度由skill_width决定
+	var collision_length = 30.0
+	rect_shape.size = Vector2(collision_length, skill_width)
+	collision_shape.shape = rect_shape
+	
+	print("  📐 设置定向碰撞盒: 长度=", collision_length, " 宽度=", skill_width)
+
+func update_rotation() -> void:
+	"""更新旋转角度和贴图朝向（在direction设置后调用）"""
+	if direction != Vector2.ZERO:
+		rotation = direction.angle()
+		print("  🔄 更新旋转朝向: ", rad_to_deg(rotation), "° 方向: ", direction)
 
 func setup_enemy_projectile() -> void:
 	# 敌人弹道 - 类似投射物但有不同外观
@@ -90,7 +147,7 @@ func setup_targeted() -> void:
 
 func _physics_process(delta: float) -> void:
 	# 投射物和敌人弹道都需要移动
-	if skill_type == "projectile" or skill_type == "enemy_projectile":
+	if skill_type in ["projectile", "enemy_projectile", "tornado", "sonic_wave"]:
 		var movement = direction.normalized() * speed * delta
 		position += movement
 		traveled_distance += movement.length()
@@ -126,7 +183,8 @@ func _on_body_entered(body: Node2D) -> void:
 	
 	# 根据技能类型处理其他碰撞
 	match skill_type:
-		"projectile":
+		"projectile", "tornado", "sonic_wave":
+			# 这三种都使用玩家弹道碰撞逻辑
 			handle_player_projectile_collision(body)
 		"enemy_projectile":
 			handle_enemy_projectile_collision(body)
@@ -136,6 +194,17 @@ func _on_body_entered(body: Node2D) -> void:
 func handle_player_projectile_collision(body: Node2D) -> void:
 	# 玩家弹道：检查是否为敌人（不攻击玩家自己）
 	if body != get_tree().get_first_node_in_group("players") and body.has_method("take_damage"):
+		# 检查是否是"穿透但每个敌人只命中一次"的技能（如龙卷风、声波）
+		if has_meta("hit_once") and get_meta("hit_once") == true:
+			# 检查这个敌人是否已经被命中过
+			if body in hit_targets:
+				print("  ⏭️ 敌人 ", body.name, " 已被命中过，跳过")
+				return  # 这个敌人已经被命中过，跳过
+			else:
+				# 记录这个敌人
+				hit_targets.append(body)
+				print("  🎯 首次命中敌人: ", body.name, " (已命中数: ", hit_targets.size(), ")")
+		
 		# 传递伤害来源（玩家）
 		body.take_damage(damage, source if source else get_tree().get_first_node_in_group("players"))
 		print("玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害")
@@ -156,13 +225,22 @@ func handle_player_projectile_collision(body: Node2D) -> void:
 			else:
 				print("  ⚠️ 目标没有BuffSystem节点，目标子节点: ", body.get_children())
 		
-		# 延迟禁用碰撞检测，避免物理引擎冲突
-		set_deferred("monitoring", false)
-		set_deferred("monitorable", false)
+		# 处理击退效果
+		if has_meta("knockback") and get_meta("knockback") == true:
+			apply_knockback(body)
 		
-		# 延迟创建撞击特效，避免物理引擎冲突
-		call_deferred("create_impact_effect", Color.WHITE)
-		queue_free()
+		# 如果不是"穿透"类型的技能，命中后销毁
+		if not (has_meta("hit_once") and get_meta("hit_once") == true):
+			# 延迟禁用碰撞检测，避免物理引擎冲突
+			set_deferred("monitoring", false)
+			set_deferred("monitorable", false)
+			
+			# 延迟创建撞击特效，避免物理引擎冲突
+			call_deferred("create_impact_effect", Color.WHITE)
+			queue_free()
+		else:
+			# 穿透技能，命中后继续飞行并可以命中其他目标
+			print("  ✈️ 技能继续飞行，可以命中其他未命中的目标")
 
 func handle_enemy_projectile_collision(body: Node2D) -> void:
 	# 敌人弹道：检查是否为玩家
@@ -220,6 +298,9 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 		skill_effects.add_child(impact)
 	else:
 		get_tree().current_scene.add_child(impact)
+	
+	# ✅ 初始化撞击特效
+	impact.initialize()
 
 ## ========== 阻挡物碰撞处理（障碍物 + 墙壁） ==========
 
@@ -249,14 +330,25 @@ func is_obstacle_collision(body: Node2D) -> bool:
 func handle_obstacle_collision(body: Node2D) -> void:
 	"""处理障碍物或墙壁碰撞"""
 	var collision_type = "unknown"
+	var is_wall = false
 	
 	# 判断是墙壁还是障碍物
 	if body.name.begins_with("RoomWall"):
 		collision_type = "wall"
+		is_wall = true
 	elif body.has_method("get_obstacle_type"):
 		collision_type = body.get_obstacle_type()
+		is_wall = false
 	
 	print("🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type)
+	
+	# 🌪️ 特殊技能（龙卷风、声波）穿透障碍物，只被墙壁阻挡
+	if skill_type in ["tornado", "sonic_wave"] and not is_wall:
+		print("  ✈️ ", skill_type, " 穿透障碍物，继续飞行")
+		return  # 不销毁，继续飞行
+	
+	# 其他技能或碰到墙壁：销毁弹道
+	print("  💥 弹道被阻挡，销毁")
 	
 	# 延迟禁用碰撞检测，避免物理引擎冲突
 	set_deferred("monitoring", false)
@@ -267,3 +359,24 @@ func handle_obstacle_collision(body: Node2D) -> void:
 	
 	# 销毁弹道
 	queue_free()
+
+func apply_knockback(target: Node2D) -> void:
+	"""对目标应用击退效果"""
+	if not target.has_method("move_and_collide"):
+		print("  ⚠️ 目标无法被击退: ", target.name)
+		return
+	
+	if not has_meta("knockback_distance") or not has_meta("knockback_direction"):
+		print("  ⚠️ 缺少击退参数")
+		return
+	
+	var kb_distance = get_meta("knockback_distance")
+	var kb_direction = get_meta("knockback_direction")
+	
+	print("  💥 击退 ", target.name, " 方向: ", kb_direction, " 距离: ", kb_distance)
+	
+	# 使用Tween实现平滑击退
+	var tween = create_tween()
+	var start_pos = target.global_position
+	var end_pos = start_pos + kb_direction * kb_distance
+	tween.tween_property(target, "global_position", end_pos, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

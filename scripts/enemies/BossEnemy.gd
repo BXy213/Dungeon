@@ -341,6 +341,9 @@ func create_summon_effect() -> void:
 		skill_effects.add_child(summon_effect)
 	else:
 		get_tree().current_scene.add_child(summon_effect)
+	
+	# ✅ 初始化效果
+	summon_effect.initialize()
 
 ## ========== BOSS特殊能力 ==========
 

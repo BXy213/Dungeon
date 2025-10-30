@@ -40,6 +40,7 @@ func execute_skill_effect(_target_position: Vector2, _target_node: Node) -> void
 		var restore_effect = create_skill_effect("heal", player.global_position)
 		restore_effect.modulate = skill_color
 		restore_effect.life_time = 1.5
+		restore_effect.initialize()  # ✅ 初始化
 		
 		var total_mana = int(mana_strength * 8 * (mana_duration / 0.5))  # 预估总回复量
 		print("🔮 魔法回复释放! 获得魔法回复buff，持续 ", mana_duration, " 秒 (预计回复约 ", total_mana, " 点魔法)")

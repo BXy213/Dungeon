@@ -10,7 +10,12 @@ var all_skill_classes = {
 	"heal": "res://scripts/skills/HealSkill.gd",
 	"meteor": "res://scripts/skills/MeteorSkill.gd",
 	"snipe": "res://scripts/skills/SnipeSkill.gd",
-	"mana_restore": "res://scripts/skills/ManaRestoreSkill.gd"
+	"mana_restore": "res://scripts/skills/ManaRestoreSkill.gd",
+	# 🌟 新增技能 - 参考DOTA2祈求者
+	"poison_shot": "res://scripts/skills/PoisonShotSkill.gd",
+	"swift_strike": "res://scripts/skills/SwiftStrikeSkill.gd",
+	"tornado": "res://scripts/skills/TornadoSkill.gd",
+	"sonic_wave": "res://scripts/skills/SonicWaveSkill.gd"
 }
 
 # 🎮 玩家激活的技能实例（最多4个，可以为null）

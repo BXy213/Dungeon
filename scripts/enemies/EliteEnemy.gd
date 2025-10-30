@@ -12,7 +12,7 @@ var last_poison_time: float = 0.0  # 上次毒攻击时间
 
 # AI行为属性
 var current_target: Node = null
-var detection_range: float = 400.0
+var detection_range: float = 500.0
 var lose_target_distance: float = 500.0
 
 func _init():
@@ -20,11 +20,11 @@ func _init():
 	
 	# 设置精英战士属性
 	character_name = "精英战士"
-	max_health = 150
+	max_health = 200
 	health = 150
 	base_speed = 85.0
 	base_attack_damage = 20
-	attack_range = 100.0
+	attack_range = 150.0
 	attack_cooldown = 2.0
 	experience_reward = 80
 	
@@ -204,6 +204,9 @@ func create_poison_attack_effect() -> void:
 		skill_effects.add_child(poison_effect)
 	else:
 		get_tree().current_scene.add_child(poison_effect)
+	
+	# ✅ 初始化效果
+	poison_effect.initialize()
 
 ## ========== 精英战士特殊能力 ==========
 

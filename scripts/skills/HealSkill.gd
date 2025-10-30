@@ -40,6 +40,7 @@ func execute_skill_effect(_target_position: Vector2, _target_node: Node) -> void
 		var heal_effect = create_skill_effect("heal", player.global_position)
 		heal_effect.modulate = skill_color
 		heal_effect.life_time = 1.5
+		heal_effect.initialize()  # ✅ 初始化
 		
 		var total_heal = int(heal_strength * 10 * (heal_duration / 0.5))  # 预估总回复量
 		print("💚 治疗术释放! 获得生命回复buff，持续 ", heal_duration, " 秒 (预计回复约 ", total_heal, " 点生命)")

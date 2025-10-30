@@ -10,11 +10,11 @@ func _init():
 	
 	# 设置近战小兵属性
 	character_name = "近战小兵"
-	max_health = 80
+	max_health = 100
 	health = 80
 	base_speed = 90.0
 	base_attack_damage = 12
-	attack_range = 100.0
+	attack_range = 150.0
 	attack_cooldown = 1.8
 	experience_reward = 30
 	
@@ -95,7 +95,7 @@ func setup_collision_size() -> void:
 
 # AI行为已直接集成，不再需要外部AI控制器
 var current_target: Node = null
-var detection_range: float = 250.0
+var detection_range: float = 400.0
 var lose_target_distance: float = 300.0
 
 

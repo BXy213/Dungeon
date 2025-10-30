@@ -3,6 +3,9 @@ extends SkillBase
 
 # ⚡ 闪电链 - 瞬发技能
 
+# 可配置参数
+@export var damage_multiplier: float = 2.0  # 伤害倍率（基于玩家攻击力）
+
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
 	
@@ -25,18 +28,23 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	
 	print("⚡ 释放闪电链到: ", target_position)
 	
+	# 计算技能伤害（基于玩家攻击力）
+	var player_attack = player.current_attack_damage if player else 10
+	var skill_damage = int(player_attack * damage_multiplier)
+	
 	# 寻找目标位置最近的敌人
 	var target_enemy = find_closest_enemy(target_position, 100.0)
 	
 	if target_enemy and target_enemy.has_method("take_damage"):
-		target_enemy.take_damage(80, player)
+		target_enemy.take_damage(skill_damage, player)
 		
 		# 创建闪电效果
 		var lightning = create_skill_effect("instant", target_enemy.global_position)
-		lightning.damage = 80
+		lightning.damage = skill_damage
 		lightning.life_time = 0.5
+		lightning.initialize()  # ✅ 初始化
 		
-		print("⚡ 闪电链命中 ", target_enemy.name, "! 造成 80 点伤害")
+		print("  ⚡ 闪电链伤害: ", player_attack, " × ", damage_multiplier, " = ", skill_damage, ", 命中 ", target_enemy.name)
 	else:
 		print("⚡ 范围内没有敌人!")
 

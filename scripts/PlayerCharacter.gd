@@ -11,8 +11,8 @@ extends "res://scripts/CharacterBase.gd"
 var input_enabled: bool = true
 
 # 技能系统
-var state_manager: PlayerStateManager
-var skill_indicator: Node2D
+var state_manager: PlayerStateManager  # 状态管理器
+var skill_indicator: Node2D  # 技能指示器
 
 # 相机系统
 @onready var camera = $Camera2D
@@ -63,37 +63,44 @@ func post_ready_setup() -> void:
 
 func setup_state_manager() -> void:
 	"""设置玩家状态管理器"""
-	if FileAccess.file_exists("res://scripts/PlayerStateManager.gd"):
-		var PlayerStateManagerClass = preload("res://scripts/PlayerStateManager.gd")
-		state_manager = PlayerStateManagerClass.new(self)
-		add_child(state_manager)
-	else:
-		print("⚠️ PlayerStateManager.gd not found, creating placeholder")
-		state_manager = Node.new()
-		add_child(state_manager)
+	# 直接使用preload，在编译时检查，导出后也能正常工作
+	state_manager = PlayerStateManager.new(self)
+	add_child(state_manager)
+	print("✅ PlayerStateManager初始化完成")
 
 ## ========== 输入处理 ==========
 
 func _input(event: InputEvent) -> void:
+	# 调试：打印所有按键事件
+	if OS.is_debug_build() and event is InputEventKey and event.pressed:
+		print("🔍 按键事件: keycode=", event.keycode, " physical_keycode=", event.physical_keycode)
+		print("  skill_1=", event.is_action("skill_1"), " pressed=", event.is_action_pressed("skill_1"))
+		print("  input_enabled=", input_enabled, " is_dead=", is_dead, " is_stunned=", is_stunned)
+	
 	if not input_enabled or is_dead or is_stunned:
 		return
 	
-	# 技能按键
-	if event is InputEventKey and event.pressed:
-		handle_key_input(event)
+	# 技能按键（使用输入映射，确保导出后正常工作）
+	if event.is_action_pressed("skill_1"):
+		print("✅ 技能1触发")
+		state_manager.handle_skill_key_input(0)
+	elif event.is_action_pressed("skill_2"):
+		print("✅ 技能2触发")
+		state_manager.handle_skill_key_input(1)
+	elif event.is_action_pressed("skill_3"):
+		print("✅ 技能3触发")
+		state_manager.handle_skill_key_input(2)
+	elif event.is_action_pressed("skill_4"):
+		print("✅ 技能4触发")
+		state_manager.handle_skill_key_input(3)
+	
+	# ESC键
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		state_manager.handle_escape_key()
 	
 	# 鼠标输入
 	if event is InputEventMouseButton and event.pressed:
 		handle_mouse_input(event)
-
-func handle_key_input(event: InputEventKey) -> void:
-	"""处理按键输入"""
-	match event.keycode:
-		KEY_1: state_manager.handle_skill_key_input(0)
-		KEY_2: state_manager.handle_skill_key_input(1)
-		KEY_3: state_manager.handle_skill_key_input(2)
-		KEY_4: state_manager.handle_skill_key_input(3)
-		KEY_ESCAPE: state_manager.handle_escape_key()
 
 func handle_mouse_input(event: InputEventMouseButton) -> void:
 	"""处理鼠标输入"""
@@ -173,16 +180,18 @@ func create_basic_attack_projectile(target_pos: Vector2) -> void:
 	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
 	if skill_effects:
 		skill_effects.add_child(projectile)
-		call_deferred("set_projectile_color", projectile)
 	else:
 		get_tree().current_scene.add_child(projectile)
-		call_deferred("set_projectile_color", projectile)
+	
+	# ✅ 在设置完所有属性并添加到场景后初始化
+	projectile.initialize()
+	call_deferred("set_projectile_color", projectile)
 
 func set_projectile_color(projectile: Node) -> void:
 	"""设置弹道颜色"""
-	var sprite = projectile.get_node_or_null("Sprite2D")
-	if sprite:
-		sprite.modulate = Color.WHITE
+	var projectile_sprite = projectile.get_node_or_null("Sprite2D")
+	if projectile_sprite:
+		projectile_sprite.modulate = Color.WHITE
 
 ## ========== 技能系统集成 ==========
 

@@ -132,6 +132,9 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 		skill_effects.add_child(projectile)
 	else:
 		get_tree().current_scene.add_child(projectile)
+	
+	# ✅ 在设置完所有属性并添加到场景后初始化
+	projectile.initialize()
 
 func set_projectile_appearance(projectile: Node) -> void:
 	"""设置弹道外观（子类可重写）"""
