@@ -9,6 +9,7 @@ extends CharacterBase
 @export var is_room_enemy: bool = true
 @export var experience_reward: int = 10
 @export var loot_chance: float = 0.1
+@export var has_silverkey: bool = false  # 是否携带银钥匙
 
 # AI逻辑已直接集成到敌人子类中
 
@@ -79,19 +80,37 @@ func handle_movement(_delta: float) -> void:
 	"""敌人移动由AI控制，这里不需要实现"""
 	pass
 
-## ========== 敌人通用攻击系统 ==========
+## ========== 攻击系统（子类可重写） ==========
 
 func execute_attack(target_position: Vector2, target: Node = null) -> void:
-	"""执行攻击效果 - 发射弹道"""
-	# 创建攻击弹道
+	"""
+	执行攻击效果（基础实现：发射弹道）
+	
+	⚠️ 注意：此方法由基类的 perform_attack() 调用，基类已处理：
+	- 攻击冷却检查
+	- 攻击距离检查
+	- 状态切换
+	
+	子类可以重写此方法来实现自定义攻击方式：
+	- 近战敌人：直接造成伤害（不使用弹道）
+	- 远程敌人：发射弹道（使用默认实现）
+	- 特殊敌人：自定义攻击效果（如范围攻击、多重攻击等）
+	"""
+	# 默认实现：发射弹道
 	launch_projectile(target_position, target)
 	
 	# 播放攻击动画
 	play_attack_animation()
 
 func launch_projectile(target_pos: Vector2, _target: Node = null) -> void:
-	"""发射攻击弹道"""
-	print("🚀 敌人 ", character_name, " 发射弹道到: ", target_pos, " 伤害: ", current_attack_damage)
+	"""
+	发射攻击弹道（用于远程敌人）
+	
+	子类通常不需要重写此方法，而是重写：
+	- execute_attack(): 改变攻击方式（如近战直接伤害）
+	- set_projectile_appearance(): 改变弹道外观
+	"""
+	print("🚀 ", character_name, " 发射弹道 → 目标: ", target_pos, " 伤害: ", current_attack_damage)
 	
 	# 房间ID验证 - 只在当前房间创建弹道
 	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
@@ -103,29 +122,36 @@ func launch_projectile(target_pos: Vector2, _target: Node = null) -> void:
 	
 	# 创建攻击弹道
 	create_attack_projectile(target_pos)
-	print("✅ 弹道已添加到场景，从 ", global_position, " 到 ", target_pos)
+	print("  ✅ 弹道已添加到场景")
 
 func create_attack_projectile(target_pos: Vector2) -> void:
-	"""创建敌人攻击弹道"""
+	"""
+	创建敌人攻击弹道的内部实现
+	
+	⚠️ 子类不应该重写此方法！
+	要自定义弹道外观，请重写 set_projectile_appearance()
+	"""
 	var projectile = preload("res://Scenes/SkillEffect.tscn").instantiate()
 	
-	# 设置弹道属性
+	# 设置弹道基础属性
 	projectile.position = global_position
 	projectile.skill_type = "enemy_projectile"  # 标记为敌人弹道
 	projectile.damage = current_attack_damage
-	projectile.speed = 300
+	projectile.speed = 300  # 默认速度，子类可在set_projectile_appearance中修改
 	projectile.max_distance = attack_range * 2  # 给足够的飞行距离
 	projectile.life_time = 3.0
 	projectile.collision_layer = 4  # 敌人弹道层
 	projectile.collision_mask = 3   # 检测玩家层(2) + 障碍物层(1) = 3
-	projectile.source = self  # ✅ 设置弹道来源为敌人自己（用于寒冰护甲反击等）
-	
-	# 设置弹道外观（由子类重写）
-	set_projectile_appearance(projectile)
+	projectile.source = self  # 弹道来源（用于寒冰护甲反击等）
 	
 	# 计算方向
 	var direction = (target_pos - global_position).normalized()
 	projectile.direction = direction
+	
+	# ✅ 关键：在initialize()之前设置外观
+	# 由于SkillEffect.setup_enemy_projectile()不再强制设置外观，
+	# 这里的设置会被保留
+	set_projectile_appearance(projectile)
 	
 	# 添加到场景
 	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
@@ -134,13 +160,30 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 	else:
 		get_tree().current_scene.add_child(projectile)
 	
-	# ✅ 在设置完所有属性并添加到场景后初始化
+	# 初始化弹道效果
 	projectile.initialize()
 
 func set_projectile_appearance(projectile: Node) -> void:
-	"""设置弹道外观（子类可重写）"""
+	"""
+	设置弹道外观（子类应该重写此方法）
+	
+	可设置的属性：
+	- sprite.modulate: 弹道颜色
+	- sprite.scale: 弹道大小
+	- projectile.speed: 弹道速度
+	- projectile.set_meta("disable_rotation", true): 禁用旋转动画
+	
+	示例：
+	func set_projectile_appearance(projectile: Node) -> void:
+	    var sprite = projectile.get_node_or_null("Sprite2D")
+	    if sprite:
+	        sprite.modulate = Color.CYAN  # 青色弹道
+	        sprite.scale = Vector2(0.25, 0.25)  # 更小的弹道
+	    projectile.speed = 400  # 更快的速度
+	"""
 	var sprite_node = projectile.get_node_or_null("Sprite2D")
 	if sprite_node:
+		# 默认外观：橙红色，中等大小
 		sprite_node.modulate = Color.ORANGE_RED
 		sprite_node.scale = Vector2(0.3, 0.3)
 
@@ -322,6 +365,11 @@ func update_health_bar() -> void:
 
 func die() -> void:
 	"""敌人死亡"""
+	# 检查是否是BOSS（在调用super.die()之前处理金钥匙掉落）
+	if character_name == "BOSS":
+		print("🎉 检测到BOSS死亡！将掉落金钥匙...")
+		drop_golden_key()
+	
 	super.die()
 	
 	# 播放死亡动画
@@ -351,6 +399,10 @@ func drop_rewards() -> void:
 	if player:
 		player.gain_experience(experience_reward)
 	
+	# 掉落银钥匙
+	if has_silverkey:
+		drop_silver_key()
+	
 	# 随机掉落物品
 	if randf() < loot_chance:
 		drop_loot()
@@ -359,6 +411,56 @@ func drop_loot() -> void:
 	"""掉落物品（待实现）"""
 	print("💎 ", character_name, " 掉落了物品!")
 	# TODO: 实现物品掉落系统
+
+func drop_silver_key() -> void:
+	"""掉落银钥匙"""
+	print("🔑 ", character_name, " 掉落银钥匙！位置: ", global_position)
+	
+	# ⚠️ 使用 call_deferred 延迟添加，避免在物理查询期间修改物理状态
+	var drop_position = global_position
+	call_deferred("_deferred_drop_silver_key", drop_position)
+
+func _deferred_drop_silver_key(drop_position: Vector2) -> void:
+	"""延迟掉落银钥匙（在下一帧执行）"""
+	# 加载银钥匙场景
+	var SilverKeyScene = preload("res://Scenes/SilverKey.tscn")
+	var silver_key = SilverKeyScene.instantiate()
+	
+	# 设置银钥匙位置
+	silver_key.global_position = drop_position
+	
+	# 将银钥匙添加到场景树
+	var game_scene = get_tree().current_scene
+	if game_scene:
+		game_scene.add_child(silver_key)
+		print("  ✓ 银钥匙已添加到场景")
+	else:
+		print("  ⚠️ 无法找到游戏场景，银钥匙添加失败")
+
+func drop_golden_key() -> void:
+	"""掉落金钥匙（BOSS专属）"""
+	print("🏆 ", character_name, " 掉落金钥匙！位置: ", global_position)
+	
+	# ⚠️ 使用 call_deferred 延迟添加，避免在物理查询期间修改物理状态
+	var drop_position = global_position
+	call_deferred("_deferred_drop_golden_key", drop_position)
+
+func _deferred_drop_golden_key(drop_position: Vector2) -> void:
+	"""延迟掉落金钥匙（在下一帧执行）"""
+	# 加载金钥匙场景
+	var GoldenKeyScene = preload("res://Scenes/GoldenKey.tscn")
+	var golden_key = GoldenKeyScene.instantiate()
+	
+	# 设置金钥匙位置
+	golden_key.global_position = drop_position
+	
+	# 将金钥匙添加到场景树
+	var game_scene = get_tree().current_scene
+	if game_scene:
+		game_scene.add_child(golden_key)
+		print("  ✓ 金钥匙已添加到场景")
+	else:
+		print("  ⚠️ 无法找到游戏场景，金钥匙添加失败")
 
 func notify_room_enemy_death() -> void:
 	"""通知房间敌人死亡"""

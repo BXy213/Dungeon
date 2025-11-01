@@ -61,6 +61,7 @@ func setup_room_content() -> void:
 	else:
 		generate_obstacles()
 		generate_enemies()
+		generate_chest()  # 生成宝箱
 		save_room_data()
 	
 	# 设置房间状态
@@ -80,6 +81,12 @@ func setup_room_content() -> void:
 	print("房间 ", room_id, " 内容设置完成，状态: ", RoomState.keys()[room_state])
 
 func generate_obstacles() -> void:
+	"""生成障碍物（初始房间不生成）"""
+	# 初始房间不生成障碍物，避免卡死玩家
+	if room_id == Vector2i(0, 0):
+		print("🏠 初始房间 (0,0) 不生成障碍物")
+		return
+	
 	# 生成障碍物
 	var obstacle_scene = preload("res://Scenes/Obstacle.tscn")
 	
@@ -164,9 +171,111 @@ func generate_enemies() -> void:
 	alive_enemy_count = enemies.size()
 	print("房间 ", room_id, " 生成了 ", enemies.size(), " 个敌人")
 	
+	# 随机指定一个敌人携带银钥匙（BOSS房间除外）
+	var is_boss_room = (room_id.x == dungeon_width - 1 and room_id.y == dungeon_height - 1)
+	if enemies.size() > 0 and not is_boss_room:
+		var key_holder_index = randi() % enemies.size()
+		var key_holder = enemies[key_holder_index]
+		key_holder.has_silverkey = true
+		print("🔑 ", key_holder.character_name, " (#", key_holder_index, ") 携带银钥匙")
+	elif is_boss_room:
+		print("🏆 BOSS房间不分配银钥匙")
+	
 	# 发出敌人计数变化信号
 	if alive_enemy_count > 0:
 		enemy_count_changed.emit(room_id, alive_enemy_count)
+
+func generate_chest() -> void:
+	"""生成宝箱"""
+	# 起始房间不生成宝箱
+	if room_id == Vector2i(0, 0):
+		print("📦 起始房间 (0,0) 不生成宝箱")
+		return
+	
+	# 获取地牢信息来判断是否是BOSS房间
+	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_width = 5
+	var dungeon_height = 5
+	if dungeon_generator:
+		dungeon_width = dungeon_generator.dungeon_width
+		dungeon_height = dungeon_generator.dungeon_height
+	
+	# BOSS房间不生成宝箱
+	var is_boss_room = (room_id.x == dungeon_width - 1 and room_id.y == dungeon_height - 1)
+	if is_boss_room:
+		print("📦 BOSS房间不生成宝箱")
+		return
+	
+	print("📦 开始生成宝箱，房间: ", room_id)
+	
+	# 加载宝箱场景
+	var ChestScene = preload("res://Scenes/Chest.tscn")
+	var chest = ChestScene.instantiate()
+	
+	# 找到合适的生成位置（避开障碍物和敌人）
+	var safe_margin = 150
+	var spawn_area = Rect2(
+		Vector2(safe_margin, safe_margin),
+		room_size - Vector2(safe_margin * 2, safe_margin * 2)
+	)
+	
+	var chest_pos = get_valid_chest_position(spawn_area)
+	chest.position = chest_pos
+	
+	# 设置z_index确保宝箱可见
+	chest.z_index = 1
+	
+	# 添加到房间
+	add_child(chest)
+	
+	print("  ✓ 宝箱已添加到房间")
+	print("    - 位置: ", chest_pos)
+	print("    - 全局位置: ", chest.global_position)
+	print("    - 可见性: ", chest.visible)
+	print("    - z_index: ", chest.z_index)
+
+func get_valid_chest_position(spawn_area: Rect2) -> Vector2:
+	"""获取有效的宝箱生成位置（避开障碍物和敌人）"""
+	var max_attempts = 50
+	var min_distance_to_obstacle = 100.0
+	var min_distance_to_enemy = 100.0
+	
+	for attempt in range(max_attempts):
+		var pos = Vector2(
+			randf_range(spawn_area.position.x, spawn_area.position.x + spawn_area.size.x),
+			randf_range(spawn_area.position.y, spawn_area.position.y + spawn_area.size.y)
+		)
+		
+		# 检查与障碍物的距离
+		var too_close_to_obstacle = false
+		for obstacle in obstacles:
+			if is_instance_valid(obstacle):
+				var distance = pos.distance_to(obstacle.position)
+				if distance < min_distance_to_obstacle:
+					too_close_to_obstacle = true
+					break
+		
+		if too_close_to_obstacle:
+			continue
+		
+		# 检查与敌人的距离
+		var too_close_to_enemy = false
+		for enemy in enemies:
+			if is_instance_valid(enemy):
+				var distance = pos.distance_to(enemy.position)
+				if distance < min_distance_to_enemy:
+					too_close_to_enemy = true
+					break
+		
+		if too_close_to_enemy:
+			continue
+		
+		# 找到了合适的位置
+		return pos
+	
+	# 如果找不到合适位置，返回房间中心
+	print("  ⚠️ 未找到理想的宝箱位置，使用房间中心")
+	return room_size / 2
 
 func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[String]:
 	"""根据房间位置确定敌人类型"""
@@ -181,9 +290,21 @@ func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[Str
 	# 前三个房间的判断（通过探索顺序或距离判断）
 	var distance_from_start = abs(room_id.x) + abs(room_id.y)  # 曼哈顿距离
 	
-	if distance_from_start <= 2:
-		# 前三个房间：生成8-10个基础敌人（近战、远程、爆破者）
-		var enemy_count = randi() % 3 + 4  # 4-6个敌人
+	if distance_from_start <= 1:
+		# 前一个房间：生成3-5个基础敌人（近战、远程、爆破者）
+		var enemy_count = randi() % 3 + 3  # 3-5个敌人
+		for i in range(enemy_count):
+			var rand = randf()
+			if rand < 0.5:  # 50%概率近战
+				enemies_to_spawn.append("melee_soldier")
+			elif rand < 0.85:  # 35%概率远程
+				enemies_to_spawn.append("ranged_soldier")
+			else:  # 15%概率爆破者
+				enemies_to_spawn.append("bomber")
+		print("🥉 早期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
+	elif distance_from_start <= 3:
+		# 中间三个房间：生成5-7个基础敌人（近战、远程、爆破者）
+		var enemy_count = randi() % 3 + 6  # 6-8个敌人
 		for i in range(enemy_count):
 			var rand = randf()
 			if rand < 0.5:  # 50%概率近战

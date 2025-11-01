@@ -21,6 +21,11 @@ func _on_start_button_pressed() -> void:
 	# 切换到游戏场景
 	get_tree().change_scene_to_file("res://Scenes/GameScene.tscn")
 
+func _on_help_button_pressed() -> void:
+	print("打开操作说明")
+	# 切换到操作说明场景
+	get_tree().change_scene_to_file("res://Scenes/HelpScene.tscn")
+
 func _on_quit_button_pressed() -> void:
 	print("退出游戏!")
 	# 确保能够正常退出

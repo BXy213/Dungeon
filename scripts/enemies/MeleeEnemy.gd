@@ -1,9 +1,16 @@
 extends "res://scripts/EnemyCharacter.gd"
 class_name MeleeEnemy
 
-# 🗡️ 近战小兵 - 直接冲锋攻击
+# 🗡️ 近战小兵 - 冲锋射击
 
 ## ========== 近战小兵特有属性 ==========
+
+# AI行为属性
+var current_target: Node = null
+var detection_range: float = 400.0
+var lose_target_distance: float = 300.0
+
+## ========== 初始化方法 ==========
 
 func _init():
 	super._init()
@@ -11,8 +18,8 @@ func _init():
 	# 设置近战小兵属性
 	character_name = "近战小兵"
 	max_health = 100
-	health = max_health  # ✅ 修复：初始血量应等于最大血量
-	base_speed = 90.0
+	health = max_health
+	base_speed = 70.0
 	base_attack_damage = 12
 	attack_range = 150.0
 	attack_cooldown = 1.8
@@ -29,8 +36,6 @@ func _ready():
 	
 	# 确保节点已创建，如果没有则立即创建
 	var existing_sprite = get_node_or_null("Sprite2D")
-	print("  检查Sprite2D: ", "已存在" if existing_sprite else "不存在，需要创建")
-	
 	if existing_sprite == null:
 		setup_enemy_nodes()
 	
@@ -43,6 +48,8 @@ func _ready():
 	
 	print("🗡️ 近战小兵 _ready() 完成")
 
+## ========== 节点设置方法 ==========
+
 func setup_enemy_nodes() -> void:
 	"""创建敌人必要的子节点"""
 	print("🔨 近战小兵正在创建节点...")
@@ -50,7 +57,7 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var melee_sprite = Sprite2D.new()
 	melee_sprite.name = "Sprite2D"
-	melee_sprite.texture = preload("res://art/icon.webp")  # 使用默认贴图
+	melee_sprite.texture = preload("res://art/icon.webp")
 	melee_sprite.modulate = Color.RED  # 红色
 	melee_sprite.scale = Vector2(0.4, 0.4)
 	add_child(melee_sprite)
@@ -72,7 +79,6 @@ func setup_enemy_nodes() -> void:
 
 func setup_visuals() -> void:
 	"""设置近战小兵视觉效果"""
-	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var melee_sprite = get_node_or_null("Sprite2D")
 	if melee_sprite:
 		melee_sprite.modulate = Color.RED  # 红色
@@ -85,7 +91,7 @@ func setup_collision_size() -> void:
 		return
 	
 	var base_size = Vector2(40, 40)
-	var scale_factor = Vector2(0.4, 0.4)  # 与玩家一致
+	var scale_factor = Vector2(0.4, 0.4)
 	
 	if collision_shape.shape is CircleShape2D:
 		var circle_shape = collision_shape.shape as CircleShape2D
@@ -94,13 +100,7 @@ func setup_collision_size() -> void:
 		var rect_shape = collision_shape.shape as RectangleShape2D
 		rect_shape.size = base_size * scale_factor
 
-## ========== 近战小兵AI行为（已简化） ==========
-
-# AI行为已直接集成，不再需要外部AI控制器
-var current_target: Node = null
-var detection_range: float = 400.0
-var lose_target_distance: float = 300.0
-
+## ========== AI行为方法 ==========
 
 func _find_target():
 	"""寻找玩家目标"""
@@ -130,7 +130,20 @@ func _physics_process(delta: float) -> void:
 			# 不在攻击范围内 - 追击
 			move_towards(current_target.global_position, 1.0)
 
-## ========== 近战小兵特殊能力 ==========
+## ========== 攻击方法 ==========
+
+func set_projectile_appearance(projectile: Node) -> void:
+	"""设置近战小兵弹道外观"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		sprite_node.modulate = Color.RED  # 红色弹道（与近战小兵颜色一致）
+		sprite_node.scale = Vector2(0.3, 0.3)  # 中等大小
+		print("  🎨 近战小兵弹道外观: 红色, 大小 0.3")
+	
+	# 设置弹道速度
+	projectile.speed = 330
+
+## ========== 辅助方法 ==========
 
 func should_retreat() -> bool:
 	"""近战小兵在低血量时撤退"""
@@ -139,7 +152,7 @@ func should_retreat() -> bool:
 
 func get_ai_description() -> String:
 	"""获取AI描述"""
-	return "近战小兵AI - 直接冲锋攻击，低血量时撤退"
+	return "近战小兵AI - 冲锋射击，低血量时撤退"
 
 ## ========== 静态工厂方法 ==========
 

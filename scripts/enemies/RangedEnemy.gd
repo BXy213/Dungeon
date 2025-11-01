@@ -5,9 +5,12 @@ class_name RangedEnemy
 
 ## ========== 远程小兵特有属性 ==========
 
+# 距离管理属性
 var preferred_distance: float = 120.0  # 偏好的攻击距离
 var min_distance: float = 80.0  # 最小保持距离
 var max_distance: float = 180.0  # 最大攻击距离
+
+# 游走移动属性
 var strafe_timer: float = 0.0
 var strafe_direction: Vector2 = Vector2.ZERO
 
@@ -16,13 +19,15 @@ var current_target: Node = null
 var detection_range: float = 500.0
 var lose_target_distance: float = 400.0
 
+## ========== 初始化方法 ==========
+
 func _init():
 	super._init()
 	
 	# 设置远程小兵属性
 	character_name = "远程小兵"
 	max_health = 80
-	health = max_health  # ✅ 修复：初始血量应等于最大血量
+	health = max_health
 	base_speed = 70.0
 	base_attack_damage = 10
 	attack_range = 500.0
@@ -38,10 +43,8 @@ func _ready():
 	
 	print("🏹 远程小兵 _ready() 被调用，位置: ", global_position)
 	
-	# 确保节点已创建，如果没有则立即创建
+	# 确保节点已创建
 	var existing_sprite = get_node_or_null("Sprite2D")
-	print("  检查Sprite2D: ", "已存在" if existing_sprite else "不存在，需要创建")
-	
 	if existing_sprite == null:
 		setup_enemy_nodes()
 	
@@ -52,10 +55,13 @@ func _ready():
 	target_timer.autostart = true
 	add_child(target_timer)
 	
+	# 初始化游走方向
 	strafe_timer = randf_range(1.0, 3.0)
 	strafe_direction = Vector2.from_angle(randf() * TAU).normalized()
 	
 	print("🏹 远程小兵 _ready() 完成")
+
+## ========== 节点设置方法 ==========
 
 func setup_enemy_nodes() -> void:
 	"""创建敌人必要的子节点"""
@@ -86,7 +92,6 @@ func setup_enemy_nodes() -> void:
 
 func setup_visuals() -> void:
 	"""设置远程小兵视觉效果"""
-	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var ranged_sprite = get_node_or_null("Sprite2D")
 	if ranged_sprite:
 		ranged_sprite.modulate = Color.BLUE  # 蓝色
@@ -99,7 +104,7 @@ func setup_collision_size() -> void:
 		return
 	
 	var base_size = Vector2(40, 40)
-	var scale_factor = Vector2(0.36, 0.36)  # 稍小
+	var scale_factor = Vector2(0.36, 0.36)
 	
 	if collision_shape.shape is CircleShape2D:
 		var circle_shape = collision_shape.shape as CircleShape2D
@@ -108,7 +113,7 @@ func setup_collision_size() -> void:
 		var rect_shape = collision_shape.shape as RectangleShape2D
 		rect_shape.size = base_size * scale_factor
 
-## ========== 远程小兵AI行为 ==========
+## ========== AI行为方法 ==========
 
 func _find_target():
 	"""寻找玩家目标"""
@@ -146,7 +151,7 @@ func _physics_process(delta: float) -> void:
 			# 太远 - 接近
 			perform_approach_movement()
 
-## ========== 远程小兵移动行为 ==========
+## ========== 移动方法 ==========
 
 func perform_approach_movement() -> void:
 	"""接近目标到合适距离"""
@@ -176,7 +181,20 @@ func perform_strafe_movement() -> void:
 	var movement_vector = perpendicular_direction * strafe_direction.x + target_direction * strafe_direction.y
 	move_towards(global_position + movement_vector * 50, 0.7)
 
-## ========== 远程小兵特殊能力 ==========
+## ========== 攻击方法 ==========
+
+func set_projectile_appearance(projectile: Node) -> void:
+	"""设置远程小兵弹道外观"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		sprite_node.modulate = Color.RED  # 红色弹道
+		sprite_node.scale = Vector2(0.25, 0.25)  # 更小的弹道
+		print("  🎨 远程小兵弹道外观: 红色, 大小 0.25")
+	
+	# 设置更快的弹道速度
+	projectile.speed = 350
+
+## ========== 辅助方法 ==========
 
 func should_retreat() -> bool:
 	"""远程小兵在被近身时撤退"""
@@ -189,17 +207,6 @@ func should_retreat() -> bool:
 func get_ai_description() -> String:
 	"""获取AI描述"""
 	return "远程小兵AI - 保持距离射击，侧移游走"
-
-func set_projectile_appearance(projectile: Node) -> void:
-	"""设置远程小兵弹道外观"""
-	var sprite_node = projectile.get_node_or_null("Sprite2D")
-	if sprite_node:
-		sprite_node.modulate = Color.CYAN  # 青色弹道
-		sprite_node.scale = Vector2(0.25, 0.25)  # 更小的弹道
-	
-	# 设置更快的弹道速度
-	if projectile.has_method("set"):
-		projectile.speed = 350  # 比普通弹道更快
 
 ## ========== 静态工厂方法 ==========
 

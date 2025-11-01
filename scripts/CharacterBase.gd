@@ -164,11 +164,13 @@ func take_damage(amount: int, source: Node = null) -> void:
 				# 获取减伤百分比，取最高的
 				damage_reduction = max(damage_reduction, buff.strength)
 			if buff.buff_type == BuffSystem.BuffType.FROST_ARMOR:
-				# 寒冰护甲也提供伤害减免（从技能参数获取）
+				# 寒冰护甲也提供伤害减免
 				has_frost_armor = true
-				# 从FrostArmorSkill获取减伤强度（默认0.3，即30%）
-				damage_reduction = max(damage_reduction, 0.3)  # 寒冰护甲固定30%减伤
-				frost_armor_slow_strength = 0.4  # 反击减速40%
+				# ✅ 从 buff.strength 读取减伤值
+				damage_reduction = max(damage_reduction, buff.strength)
+				# 反击减速强度可以是 buff.strength 的固定比例，或使用默认值
+				# 这里使用 buff.strength * 0.8 作为减速强度（如果50%减伤，则40%减速）
+				frost_armor_slow_strength = buff.strength * 0.8
 		
 		# 应用伤害减免
 		if damage_reduction > 0.0:
@@ -385,13 +387,6 @@ func die() -> void:
 	change_state(CharacterState.DEAD)
 	
 	print("💀 ", character_name, " 死亡!")
-	
-	# 检查是否是BOSS
-	if character_name == "BOSS":
-		print("🎉 检测到BOSS死亡！")
-		var game_manager = get_tree().current_scene.get_node_or_null("GameManager")
-		if game_manager and game_manager.has_method("_on_boss_defeated"):
-			game_manager._on_boss_defeated()
 	
 	# 清除所有Buff
 	if buff_system:

@@ -28,6 +28,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -8.0
+offset_right = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.1, 0.1, 0.15, 1)
@@ -39,24 +41,28 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -100.0
-offset_right = 150.0
-offset_bottom = 100.0
+offset_left = -265.0
+offset_top = -171.0
+offset_right = 265.0
+offset_bottom = 171.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Title" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-text = "🗡️ MOBA 地牢探险"
+theme_override_font_sizes/font_size = 48
+text = "Dungeon Escape !"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Subtitle" type="Label" parent="VBoxContainer"]
+[node name="Subtitle" type="RichTextLabel" parent="VBoxContainer"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-text = "勇敢探索神秘地牢，消灭所有敌人！"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+text = "[center][i]find the GOLDEN KEY and escape the ...[/i][/center]"
+fit_content = true
+scroll_active = false
 
 [node name="SpacerTop" type="Control" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 30)
@@ -73,6 +79,17 @@ text = "🎮 开始游戏"
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
+[node name="HelpButton" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(250, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_1")
+text = "📖 操作说明"
+
+[node name="SpacerMiddle2" type="Control" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(250, 50)
 layout_mode = 2
@@ -84,10 +101,6 @@ text = "🚪 退出游戏"
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="VersionLabel" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-text = "版本 V5.0 - 完整菜单系统"
-horizontal_alignment = 1
-
 [connection signal="pressed" from="VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/HelpButton" to="." method="_on_help_button_pressed"]
 [connection signal="pressed" from="VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

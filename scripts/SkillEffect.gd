@@ -99,12 +99,13 @@ func update_rotation() -> void:
 		print("  🔄 更新旋转朝向: ", rad_to_deg(rotation), "° 方向: ", direction)
 
 func setup_enemy_projectile() -> void:
-	# 敌人弹道 - 类似投射物但有不同外观
-	if sprite:
-		sprite.modulate = Color.ORANGE_RED
-		sprite.scale = Vector2(0.3, 0.3)
+	"""初始化敌人弹道（不设置外观，由敌人类自己控制）"""
+	# ✅ 移除了强制的外观设置，外观应该在create_attack_projectile()中通过set_projectile_appearance()设置
 	
-	# 添加旋转效果
+	# 添加旋转效果（可选，子类可以在set_projectile_appearance中禁用）
+	if get_meta("disable_rotation", false):
+		return
+	
 	var tween = create_tween()
 	tween.set_loops()
 	tween.tween_property(self, "rotation", rotation + TAU, 0.5)

@@ -5,6 +5,7 @@ class_name EliteEnemy
 
 ## ========== 精英战士特有属性 ==========
 
+# 毒攻击属性
 var poison_attack_chance: float = 0.3  # 毒攻击概率
 var poison_attack_range: float = 40.0  # 毒攻击触发距离
 var poison_cooldown: float = 8.0  # 毒攻击冷却时间
@@ -15,13 +16,15 @@ var current_target: Node = null
 var detection_range: float = 500.0
 var lose_target_distance: float = 500.0
 
+## ========== 初始化方法 ==========
+
 func _init():
 	super._init()
 	
 	# 设置精英战士属性
 	character_name = "精英战士"
 	max_health = 200
-	health = max_health  # ✅ 修复：初始血量应等于最大血量
+	health = max_health
 	base_speed = 85.0
 	base_attack_damage = 20
 	attack_range = 150.0
@@ -38,7 +41,9 @@ func _init():
 func _ready():
 	super._ready()
 	
-	# 确保节点已创建，如果没有则立即创建
+	print("🛡️ 精英战士 _ready() 被调用，位置: ", global_position)
+	
+	# 确保节点已创建
 	if get_node_or_null("Sprite2D") == null:
 		setup_enemy_nodes()
 	
@@ -48,9 +53,15 @@ func _ready():
 	target_timer.timeout.connect(_find_target)
 	target_timer.autostart = true
 	add_child(target_timer)
+	
+	print("🛡️ 精英战士 _ready() 完成")
+
+## ========== 节点设置方法 ==========
 
 func setup_enemy_nodes() -> void:
 	"""创建敌人必要的子节点"""
+	print("🔨 精英战士正在创建节点...")
+	
 	# 创建Sprite2D节点
 	var elite_sprite = Sprite2D.new()
 	elite_sprite.name = "Sprite2D"
@@ -58,6 +69,7 @@ func setup_enemy_nodes() -> void:
 	elite_sprite.modulate = Color.ORANGE  # 橙色
 	elite_sprite.scale = Vector2(0.52, 0.52)
 	add_child(elite_sprite)
+	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
 	var collision_shape = CollisionShape2D.new()
@@ -69,12 +81,12 @@ func setup_enemy_nodes() -> void:
 	
 	# 创建血条
 	create_health_bar()
+	print("  ✓ 血条已创建")
 	
 	print("🛡️ 精英战士节点创建完成")
 
 func setup_visuals() -> void:
 	"""设置精英战士视觉效果"""
-	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var elite_sprite = get_node_or_null("Sprite2D")
 	if elite_sprite:
 		elite_sprite.modulate = Color.ORANGE  # 橙色
@@ -87,7 +99,7 @@ func setup_collision_size() -> void:
 		return
 	
 	var base_size = Vector2(40, 40)
-	var scale_factor = Vector2(0.52, 0.52)  # 更大
+	var scale_factor = Vector2(0.52, 0.52)
 	
 	if collision_shape.shape is CircleShape2D:
 		var circle_shape = collision_shape.shape as CircleShape2D
@@ -96,7 +108,7 @@ func setup_collision_size() -> void:
 		var rect_shape = collision_shape.shape as RectangleShape2D
 		rect_shape.size = base_size * scale_factor
 
-## ========== 精英战士AI行为 ==========
+## ========== AI行为方法 ==========
 
 func _find_target():
 	"""寻找玩家目标"""
@@ -125,19 +137,7 @@ func _physics_process(delta: float) -> void:
 			# 不在攻击范围内 - 预测性追击
 			perform_predictive_chase()
 
-## ========== 精英战士攻击方法 ==========
-
-func perform_elite_attack() -> void:
-	"""精英战士普通攻击"""
-	if not current_target:
-		return
-	
-	perform_attack(current_target.global_position, current_target)
-	print("🛡️ 精英战士发起攻击!")
-	
-	# 攻击后短暂前冲，更加aggressive
-	var charge_direction = (current_target.global_position - global_position).normalized()
-	move_towards(global_position + charge_direction * 15, 0.8)
+## ========== 移动方法 ==========
 
 func perform_predictive_chase() -> void:
 	"""预测目标位置进行追击"""
@@ -155,7 +155,32 @@ func perform_predictive_chase() -> void:
 	# 以更快的速度冲向预测位置
 	move_towards(predicted_position, 1.1)
 
-## ========== 毒攻击系统 ==========
+## ========== 攻击方法 ==========
+
+func perform_elite_attack() -> void:
+	"""精英战士普通攻击"""
+	if not current_target:
+		return
+	
+	perform_attack(current_target.global_position, current_target)
+	print("🛡️ 精英战士发起攻击!")
+	
+	# 攻击后短暂前冲，更加aggressive
+	var charge_direction = (current_target.global_position - global_position).normalized()
+	move_towards(global_position + charge_direction * 15, 0.8)
+
+func set_projectile_appearance(projectile: Node) -> void:
+	"""设置精英战士弹道外观"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		sprite_node.modulate = Color.ORANGE  # 橙色弹道
+		sprite_node.scale = Vector2(0.35, 0.35)
+		print("  🎨 精英战士弹道外观: 橙色, 大小 0.35")
+	
+	# 设置弹道速度
+	projectile.speed = 320
+
+## ========== 特殊能力方法 ==========
 
 func can_use_poison_attack() -> bool:
 	"""检查是否可以使用毒攻击"""
@@ -180,12 +205,11 @@ func perform_poison_attack() -> void:
 	
 	# 对目标造成毒伤害并应用毒buff
 	if current_target.has_method("take_damage"):
-		var poison_damage = current_attack_damage * 0.8  # 毒攻击伤害稍低
+		var poison_damage = current_attack_damage * 0.8
 		current_target.take_damage(poison_damage)
 		
 		# 应用毒buff
 		if current_target.has_method("apply_buff"):
-			# 应用中毒效果：强度2.0，持续8秒
 			current_target.buff_system.apply_buff(0, 2.0, 8.0)  # BuffType.POISON = 0
 
 func create_poison_attack_effect() -> void:
@@ -208,14 +232,14 @@ func create_poison_attack_effect() -> void:
 	else:
 		get_tree().current_scene.add_child(poison_effect)
 	
-	# ✅ 初始化效果
+	# 初始化效果
 	poison_effect.initialize()
 
-## ========== 精英战士特殊能力 ==========
+## ========== 辅助方法 ==========
 
 func should_retreat() -> bool:
 	"""精英战士很少撤退"""
-	return false  # 精英敌人更倾向于战斗到底
+	return false
 
 func get_ai_description() -> String:
 	"""获取AI描述"""

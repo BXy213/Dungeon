@@ -6,6 +6,7 @@ extends "res://scripts/CharacterBase.gd"
 
 @export var experience: int = 0
 @export var level: int = 1
+@export var silver_key_count: int = 0  # 银钥匙数量
 
 # 输入相关
 var input_enabled: bool = true
@@ -22,6 +23,7 @@ var skill_indicator: Node2D  # 技能指示器
 signal player_leveled_up(new_level: int)
 signal experience_gained(amount: int)
 signal player_died
+signal silver_key_changed(new_count: int)
 
 ## ========== 初始化 ==========
 
@@ -246,6 +248,25 @@ func level_up() -> void:
 func get_required_experience_for_level(target_level: int) -> int:
 	"""获取升级所需经验值"""
 	return target_level * target_level * 100  # 简单的经验公式
+
+## ========== 银钥匙管理 ==========
+
+func add_silver_key(amount: int = 1) -> void:
+	"""添加银钥匙"""
+	silver_key_count += amount
+	print("🔑 获得银钥匙 +", amount, "，当前数量: ", silver_key_count)
+	silver_key_changed.emit(silver_key_count)
+
+func remove_silver_key(amount: int = 1) -> bool:
+	"""移除银钥匙，返回是否成功"""
+	if silver_key_count >= amount:
+		silver_key_count -= amount
+		print("🔑 使用银钥匙 -", amount, "，剩余数量: ", silver_key_count)
+		silver_key_changed.emit(silver_key_count)
+		return true
+	else:
+		print("⚠️ 银钥匙不足！需要: ", amount, "，当前: ", silver_key_count)
+		return false
 
 func show_level_up_effect() -> void:
 	"""显示升级特效"""

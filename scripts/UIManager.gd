@@ -44,6 +44,9 @@ var skill_manager = null
 @onready var defense_label = $BottomPanel/StatusPanel/PlayerStats/DefenseLabel
 @onready var speed_label = $BottomPanel/StatusPanel/PlayerStats/SpeedLabel
 
+# 银钥匙显示（动态创建）
+var silver_key_label: Label
+
 # 技能视觉效果UI - 状态叠加
 @onready var state_overlays = [
 	$BottomPanel/SkillBar/Skill1/StateOverlay,
@@ -58,6 +61,9 @@ var minimap_container: Control
 var minimap_room_size: Vector2 = Vector2(15, 15)  # 小地图中每个房间的大小
 var minimap_rooms: Dictionary = {}  # 存储小地图房间节点
 var minimap_corridors: Dictionary = {}  # 存储小地图通道节点
+var discovered_rooms: Dictionary = {}  # 已发现的房间
+var discovered_corridors: Dictionary = {}  # 已发现的通道
+var boss_room_coord: Vector2i  # BOSS房间坐标
 var player_indicator: ColorRect  # 玩家位置指示器
 
 # 房间状态面板（动态创建）
@@ -102,7 +108,12 @@ func _ready() -> void:
 	create_pause_ui()
 	create_room_status_panel()
 	create_minimap()
+	create_silver_key_display()
 	setup_dungeon_reference()
+	
+	# 连接玩家的银钥匙变化信号
+	if player and player.has_signal("silver_key_changed"):
+		player.silver_key_changed.connect(_on_silver_key_changed)
 
 func setup_dungeon_reference() -> void:
 	# 等待一帧确保场景树准备好
@@ -264,6 +275,8 @@ func _on_area_changed(area_type: String, area_id: String) -> void:
 	if area_type == "corridor":
 		show_corridor_status(area_id)
 		update_player_position_on_minimap()  # 更新玩家在通道中的位置
+		# 显示通道（移除迷雾）
+		reveal_corridor(area_id)
 		print("UI更新通道状态: ", area_id)
 	elif area_type == "room":
 		# 玩家进入或回到房间，更新房间状态显示
@@ -274,6 +287,8 @@ func _on_area_changed(area_type: String, area_id: String) -> void:
 			var current_room = dungeon_generator.current_room
 			if current_room:
 				var room_coord = current_room.room_id
+				# 显示房间（移除迷雾）
+				reveal_room(room_coord)
 				if room_coord in minimap_rooms:
 					var room_rect = minimap_rooms[room_coord]
 					update_minimap_room_color(room_rect, room_coord)
@@ -305,10 +320,15 @@ func initialize_minimap() -> void:
 		child.queue_free()
 	minimap_rooms.clear()
 	minimap_corridors.clear()
+	discovered_rooms.clear()
+	discovered_corridors.clear()
 	
 	# 获取地牢尺寸
 	var dungeon_width = dungeon_generator.dungeon_width
 	var dungeon_height = dungeon_generator.dungeon_height
+	
+	# 记录BOSS房间坐标
+	boss_room_coord = Vector2i(dungeon_width - 1, dungeon_height - 1)
 	
 	# 计算小地图房间大小，为通道预留空间
 	var container_size = minimap_container.size
@@ -319,7 +339,7 @@ func initialize_minimap() -> void:
 	)
 	minimap_room_size = room_size
 	
-	# 创建小地图房间（带间隔）
+	# 创建所有小地图房间（初始不可见）
 	for x in range(dungeon_width):
 		for y in range(dungeon_height):
 			var room_coord = Vector2i(x, y)
@@ -330,14 +350,24 @@ func initialize_minimap() -> void:
 				y * (minimap_room_size.y + corridor_gap) + 5
 			)
 			
-			# 设置初始颜色（未探索）
+			# 初始设置为不可见（迷雾）
+			room_rect.visible = false
+			
+			# 设置颜色（未探索）
 			update_minimap_room_color(room_rect, room_coord)
 			
 			minimap_container.add_child(room_rect)
 			minimap_rooms[room_coord] = room_rect
 	
-	# 创建小地图通道
+	# 创建小地图通道（初始不可见）
 	create_minimap_corridors()
+	
+	# 显示初始房间和BOSS房间
+	reveal_room(Vector2i(0, 0))  # 初始房间
+	reveal_room(boss_room_coord)  # BOSS房间
+	
+	# 为BOSS房间添加金钥匙图标
+	add_golden_key_icon_to_boss_room()
 	
 	# 创建玩家位置指示器
 	player_indicator = ColorRect.new()
@@ -348,6 +378,8 @@ func initialize_minimap() -> void:
 	
 	# 更新玩家位置
 	update_player_position_on_minimap()
+	
+	print("🗺️ 小地图初始化完成（迷雾探索模式）")
 
 func create_minimap_corridors() -> void:
 	if not dungeon_generator:
@@ -363,6 +395,7 @@ func create_minimap_corridors() -> void:
 		var corridor_rect = ColorRect.new()
 		corridor_rect.color = Color(0.6, 0.6, 0.6, 0.8)  # 灰色通道
 		corridor_rect.z_index = 1  # 在房间之上，玩家指示器之下
+		corridor_rect.visible = false  # 初始不可见（迷雾）
 		
 		# 计算小地图中通道的位置和大小
 		var room1_coord = corridor_data.room1_coord
@@ -427,6 +460,79 @@ func update_minimap_room_color(room_rect: ColorRect, room_coord: Vector2i) -> vo
 	else:
 		room_rect.color = Color(0.1, 0.1, 0.1, 0.5)  # 深灰色 - 不存在的房间
 
+func reveal_room(room_coord: Vector2i) -> void:
+	"""显示房间（移除迷雾）"""
+	if room_coord in discovered_rooms:
+		return  # 已经显示过了
+	
+	if room_coord in minimap_rooms:
+		var room_rect = minimap_rooms[room_coord]
+		room_rect.visible = true
+		discovered_rooms[room_coord] = true
+		
+		# 更新房间颜色
+		update_minimap_room_color(room_rect, room_coord)
+		
+		# 显示连接到这个房间的通道
+		reveal_corridors_connected_to_room(room_coord)
+		
+		print("🗺️ 显示房间: ", room_coord)
+
+func reveal_corridors_connected_to_room(room_coord: Vector2i) -> void:
+	"""显示连接到指定房间的所有通道"""
+	if not dungeon_generator:
+		return
+	
+	for corridor_id in dungeon_generator.corridors:
+		var corridor_data = dungeon_generator.corridors[corridor_id]
+		var room1_coord = corridor_data.room1_coord
+		var room2_coord = corridor_data.room2_coord
+		
+		# 如果通道连接到这个房间，且两端房间都已发现，则显示通道
+		if (room1_coord == room_coord or room2_coord == room_coord):
+			if room1_coord in discovered_rooms and room2_coord in discovered_rooms:
+				reveal_corridor(corridor_id)
+
+func reveal_corridor(corridor_id: String) -> void:
+	"""显示通道（移除迷雾）"""
+	if corridor_id in discovered_corridors:
+		return  # 已经显示过了
+	
+	if corridor_id in minimap_corridors:
+		var corridor_rect = minimap_corridors[corridor_id]
+		corridor_rect.visible = true
+		discovered_corridors[corridor_id] = true
+		print("🗺️ 显示通道: ", corridor_id)
+
+func add_golden_key_icon_to_boss_room() -> void:
+	"""为BOSS房间添加金钥匙图标"""
+	if not boss_room_coord in minimap_rooms:
+		return
+	
+	var boss_room_rect = minimap_rooms[boss_room_coord]
+	
+	# 创建金钥匙图标
+	var key_icon = TextureRect.new()
+	var key_texture = load("res://art/goldenkey.png")
+	if key_texture:
+		key_icon.texture = key_texture
+		key_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		key_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		
+		# 设置金钥匙图标大小（约为房间大小的70%）
+		var icon_size = minimap_room_size * 0.7
+		key_icon.size = icon_size
+		
+		# 居中放置
+		key_icon.position = (minimap_room_size - icon_size) / 2
+		
+		key_icon.z_index = 5  # 在房间和玩家指示器之间
+		
+		boss_room_rect.add_child(key_icon)
+		print("🏆 BOSS房间添加金钥匙图标")
+	else:
+		print("⚠️ 无法加载金钥匙贴图")
+
 func update_player_position_on_minimap() -> void:
 	if not dungeon_generator or not player_indicator:
 		return
@@ -459,8 +565,9 @@ func _on_room_exploration_completed(room_id: Vector2i) -> void:
 	if dungeon_generator and dungeon_generator.current_room:
 		update_room_status_display(dungeon_generator.current_room)
 	
-	# 显示技能奖励选择界面
-	show_skill_reward_selection()
+	# ❌ 不再自动显示技能奖励选择界面
+	# 玩家需要用银钥匙打开宝箱来获取奖励
+	# show_skill_reward_selection()
 	
 	# 更新小地图中对应房间的颜色
 	if room_id in minimap_rooms:
@@ -624,12 +731,15 @@ func create_minimap() -> void:
 func create_skill_swap_ui() -> void:
 	# 创建技能切换按钮（右下角）
 	skill_swap_button = Button.new()
-	skill_swap_button.text = "⚙️"
-	skill_swap_button.size = Vector2(50, 50)
+	skill_swap_button.text = "技能\n调配"
+	skill_swap_button.size = Vector2(60, 60)
+	
+	# 设置文本居中和字体大小
+	skill_swap_button.add_theme_font_size_override("font_size", 14)
 	
 	# 计算位置：右下角，技能条右侧
 	var screen_size = get_viewport().get_visible_rect().size
-	skill_swap_button.position = Vector2(screen_size.x - 70, screen_size.y - 70)
+	skill_swap_button.position = Vector2(screen_size.x - 80, screen_size.y - 80)
 	
 	skill_swap_button.pressed.connect(_on_skill_swap_button_pressed)
 	add_child(skill_swap_button)
@@ -905,6 +1015,46 @@ func create_skill_reward_ui() -> void:
 	add_child(skill_reward_panel)
 
 # ⏸️ 创建暂停系统UI
+func create_silver_key_display() -> void:
+	"""创建银钥匙计数显示"""
+	silver_key_label = Label.new()
+	silver_key_label.text = "🔑 银钥匙: 0"
+	
+	# 设置字体大小和颜色
+	silver_key_label.add_theme_font_size_override("font_size", 16)
+	silver_key_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.6, 1.0))  # 淡黄色
+	
+	# 获取状态面板并添加到PlayerInfo下方
+	var status_panel = get_node_or_null("BottomPanel/StatusPanel")
+	if status_panel:
+		var player_info = status_panel.get_node_or_null("PlayerInfo")
+		if player_info:
+			# 添加到PlayerInfo容器中
+			player_info.add_child(silver_key_label)
+			print("  ✓ 银钥匙显示已创建并添加到PlayerInfo")
+		else:
+			# 如果找不到PlayerInfo，直接添加到StatusPanel
+			silver_key_label.position = Vector2(10, 65)
+			status_panel.add_child(silver_key_label)
+			print("  ✓ 银钥匙显示已创建并添加到StatusPanel")
+	else:
+		print("  ⚠️ 找不到StatusPanel，无法添加银钥匙显示")
+	
+	# 初始更新显示
+	if player:
+		_on_silver_key_changed(player.silver_key_count)
+
+func _on_silver_key_changed(new_count: int) -> void:
+	"""银钥匙数量变化时更新显示"""
+	if silver_key_label:
+		silver_key_label.text = "🔑 银钥匙: " + str(new_count)
+		
+		# 根据数量改变颜色
+		if new_count > 0:
+			silver_key_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0, 1.0))  # 亮黄色
+		else:
+			silver_key_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))  # 灰色
+
 func create_pause_ui() -> void:
 	# 创建暂停按钮（右上角，最高优先级）
 	pause_button = Button.new()
@@ -1085,6 +1235,14 @@ func _on_return_to_menu_pressed() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
+var current_chest: Node = null  # 当前触发奖励的宝箱
+
+func show_chest_reward_selection(chest: Node) -> void:
+	"""显示宝箱奖励选择（由宝箱调用）"""
+	print("📦 显示宝箱奖励选择界面")
+	current_chest = chest
+	show_skill_reward_selection()
+
 func show_skill_reward_selection() -> void:
 	"""显示技能奖励选择界面"""
 	if not skill_manager:
@@ -1264,6 +1422,13 @@ func hide_skill_reward_panel() -> void:
 	is_skill_reward_open = false
 	skill_reward_panel.visible = false
 	selected_reward_skill = ""
+	
+	# ✅ 如果是从宝箱打开的，通知宝箱已完成奖励选择
+	if current_chest and is_instance_valid(current_chest):
+		if current_chest.has_method("open_chest"):
+			current_chest.open_chest()
+			print("📦 通知宝箱完成奖励选择，宝箱已开启")
+	current_chest = null
 	
 	# 清除奖励暂停状态
 	is_reward_paused = false

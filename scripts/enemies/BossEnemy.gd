@@ -5,13 +5,17 @@ class_name BossEnemy
 
 ## ========== BOSS特有属性 ==========
 
+# 距离管理属性
 var preferred_distance: float = 150.0  # BOSS偏好的攻击距离
 var min_distance: float = 120.0  # 最小保持距离
 var max_distance: float = 200.0  # 最大攻击距离
+
+# 召唤技能属性
 var summon_cooldown: float = 15.0  # 召唤技能冷却时间（秒）
 var last_summon_time: float = 0.0  # 使用引擎时间戳
 var summon_range: float = 300.0  # 召唤范围
 
+# 战术移动属性
 var move_timer: float = 0.0
 var move_direction: Vector2 = Vector2.ZERO
 
@@ -20,13 +24,15 @@ var current_target: Node = null
 var detection_range: float = 500.0
 var lose_target_distance: float = 600.0
 
+## ========== 初始化方法 ==========
+
 func _init():
 	super._init()
 	
 	# 设置BOSS属性
 	character_name = "BOSS"
 	max_health = 400
-	health = max_health  # ✅ 修复：初始血量应等于最大血量
+	health = max_health
 	base_speed = 50.0  # 移动较慢
 	base_attack_damage = 25
 	attack_range = 500.0
@@ -43,7 +49,9 @@ func _init():
 func _ready():
 	super._ready()
 	
-	# 确保节点已创建，如果没有则立即创建
+	print("👑 BOSS _ready() 被调用，位置: ", global_position)
+	
+	# 确保节点已创建
 	if get_node_or_null("Sprite2D") == null:
 		setup_enemy_nodes()
 	
@@ -53,9 +61,15 @@ func _ready():
 	target_timer.timeout.connect(_find_target)
 	target_timer.autostart = true
 	add_child(target_timer)
+	
+	print("👑 BOSS _ready() 完成")
+
+## ========== 节点设置方法 ==========
 
 func setup_enemy_nodes() -> void:
 	"""创建敌人必要的子节点"""
+	print("🔨 BOSS正在创建节点...")
+	
 	# 创建Sprite2D节点
 	var boss_sprite = Sprite2D.new()
 	boss_sprite.name = "Sprite2D"
@@ -63,6 +77,7 @@ func setup_enemy_nodes() -> void:
 	boss_sprite.modulate = Color.PURPLE  # 紫色
 	boss_sprite.scale = Vector2(0.72, 0.72)
 	add_child(boss_sprite)
+	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
 	var collision_shape = CollisionShape2D.new()
@@ -74,12 +89,12 @@ func setup_enemy_nodes() -> void:
 	
 	# 创建血条
 	create_health_bar()
+	print("  ✓ 血条已创建")
 	
 	print("👑 BOSS节点创建完成")
 
 func setup_visuals() -> void:
 	"""设置BOSS视觉效果"""
-	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var boss_sprite = get_node_or_null("Sprite2D")
 	if boss_sprite:
 		boss_sprite.modulate = Color.PURPLE  # 紫色
@@ -92,7 +107,7 @@ func setup_collision_size() -> void:
 		return
 	
 	var base_size = Vector2(40, 40)
-	var scale_factor = Vector2(0.72, 0.72)  # 最大
+	var scale_factor = Vector2(0.72, 0.72)
 	
 	if collision_shape.shape is CircleShape2D:
 		var circle_shape = collision_shape.shape as CircleShape2D
@@ -101,8 +116,7 @@ func setup_collision_size() -> void:
 		var rect_shape = collision_shape.shape as RectangleShape2D
 		rect_shape.size = base_size * scale_factor
 
-## ========== BOSS AI行为 ==========
-
+## ========== AI行为方法 ==========
 
 func _find_target():
 	"""寻找玩家目标"""
@@ -145,7 +159,7 @@ func _physics_process(delta: float) -> void:
 			# 太远 - 慢慢接近
 			approach_target_slowly()
 
-## ========== BOSS攻击和移动方法 ==========
+## ========== 移动方法 ==========
 
 func approach_target_slowly() -> void:
 	"""BOSS慢慢接近目标"""
@@ -198,11 +212,23 @@ func update_movement_direction() -> void:
 	else:
 		move_direction = to_target if randf() < 0.5 else -to_target
 
-## ========== BOSS召唤系统 ==========
+## ========== 攻击方法 ==========
+
+func set_projectile_appearance(projectile: Node) -> void:
+	"""设置BOSS弹道外观"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		sprite_node.modulate = Color.PURPLE  # 紫色弹道
+		sprite_node.scale = Vector2(0.45, 0.45)  # 更大的弹道
+		print("  🎨 BOSS弹道外观: 紫色, 大小 0.45")
+	
+	# 设置弹道速度
+	projectile.speed = 400  # 更快的速度
+
+## ========== 特殊能力方法 ==========
 
 func can_use_summon() -> bool:
 	"""检查是否可以使用召唤技能"""
-	# 使用更可靠的时间获取方法
 	var current_time = Time.get_unix_time_from_system()
 	var time_since_last_summon = current_time - last_summon_time
 	
@@ -210,7 +236,6 @@ func can_use_summon() -> bool:
 	if time_since_last_summon >= summon_cooldown - 1.0:
 		print("👑 BOSS召唤检查: 距离上次", time_since_last_summon, "秒, 需要", summon_cooldown, "秒")
 	
-	# 冷却时间检查
 	return time_since_last_summon >= summon_cooldown
 
 func perform_summon_ability() -> void:
@@ -243,46 +268,26 @@ func summon_minions() -> void:
 		print("⚠️ 未找到当前房间")
 		return
 	
-	# spawn_area应该是相对于房间的本地坐标，不需要加上房间的全局位置
-	# 因为小兵会被添加到 enemies_container，它已经是房间的子节点了
+	# spawn_area应该是相对于房间的本地坐标
 	var spawn_area = Rect2(
 		Vector2(50, 50),
 		current_room.room_size - Vector2(100, 100)
 	)
 	
-	# 召唤小兵（通过Room的创建函数）
 	print("👑 开始召唤小兵，当前房间: ", current_room.room_id)
 	
 	# 召唤近战小兵
 	var melee_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
 	var melee_soldier = current_room.create_enemy_by_type("melee_soldier")
-	print("    创建近战小兵: ", melee_soldier.character_name if melee_soldier else "null")
 	
 	if melee_soldier:
 		melee_soldier.position = melee_spawn_pos
-		print("    设置位置(本地): ", melee_spawn_pos)
-		
 		current_room.enemies_container.add_child(melee_soldier)
-		
-		# 等待节点准备好
 		await get_tree().process_frame
-		
-		print("    近战小兵位置(本地): ", melee_soldier.position)
-		print("    近战小兵位置(全局): ", melee_soldier.global_position)
-		print("    近战小兵可见性: ", melee_soldier.visible)
-		
-		# 检查Sprite是否存在
-		var melee_soldier_sprite = melee_soldier.get_node_or_null("Sprite2D")
-		if melee_soldier_sprite:
-			print("    Sprite2D: 存在, 可见:", melee_soldier_sprite.visible, ", modulate:", melee_soldier_sprite.modulate)
-		else:
-			print("    Sprite2D: 不存在")
 		
 		current_room.enemies.append(melee_soldier)
 		melee_soldier.character_died.connect(current_room._on_enemy_character_died)
 		current_room.alive_enemy_count += 1
-		
-		# 发出敌人计数变化信号
 		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
 		
 		print("    ✅ 召唤近战小兵完成")
@@ -290,40 +295,20 @@ func summon_minions() -> void:
 	# 召唤远程小兵
 	var ranged_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
 	var ranged_soldier = current_room.create_enemy_by_type("ranged_soldier")
-	print("    创建远程小兵: ", ranged_soldier.character_name if ranged_soldier else "null")
 	
 	if ranged_soldier:
 		ranged_soldier.position = ranged_spawn_pos
-		print("    设置位置(本地): ", ranged_spawn_pos)
-		
 		current_room.enemies_container.add_child(ranged_soldier)
-		
-		# 等待节点准备好
 		await get_tree().process_frame
-		
-		print("    远程小兵位置(本地): ", ranged_soldier.position)
-		print("    远程小兵位置(全局): ", ranged_soldier.global_position)
-		print("    远程小兵可见性: ", ranged_soldier.visible)
-		
-		# 检查Sprite是否存在
-		var ranged_soldier_sprite = ranged_soldier.get_node_or_null("Sprite2D")
-		if ranged_soldier_sprite:
-			print("    Sprite2D: 存在, 可见:", ranged_soldier_sprite.visible, ", modulate:", ranged_soldier_sprite.modulate)
-		else:
-			print("    Sprite2D: 不存在")
 		
 		current_room.enemies.append(ranged_soldier)
 		ranged_soldier.character_died.connect(current_room._on_enemy_character_died)
 		current_room.alive_enemy_count += 1
-		
-		# 发出敌人计数变化信号
 		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
 		
 		print("    ✅ 召唤远程小兵完成")
 	
 	print("👑 召唤完成！当前房间敌人数: ", current_room.alive_enemy_count)
-	
-	# 敌人计数已在添加时自动更新，无需手动调用
 
 func create_summon_effect() -> void:
 	"""创建召唤视觉效果"""
@@ -345,10 +330,10 @@ func create_summon_effect() -> void:
 	else:
 		get_tree().current_scene.add_child(summon_effect)
 	
-	# ✅ 初始化效果
+	# 初始化效果
 	summon_effect.initialize()
 
-## ========== BOSS特殊能力 ==========
+## ========== 辅助方法 ==========
 
 func should_retreat() -> bool:
 	"""BOSS从不撤退"""

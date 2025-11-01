@@ -213,6 +213,20 @@ func execute_chase_behavior() -> void:
 	"""执行追击行为（由_ai_update处理）"""
 	pass
 
+func set_projectile_appearance(projectile: Node) -> void:
+	"""
+	设置治疗者弹道外观
+	✅ 重写基类方法，自定义青绿色弹道
+	"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		sprite_node.modulate = Color(0.0, 1.0, 0.5)  # 青绿色弹道（与治疗者颜色一致）
+		sprite_node.scale = Vector2(0.28, 0.28)  # 较小的弹道
+		print("  🎨 治疗者弹道外观: 青绿色, 大小 0.28")
+	
+	# 设置弹道速度
+	projectile.speed = 280  # 较慢的速度
+
 ## ========== 静态创建方法 ==========
 
 static func create_healer_enemy(enemy_room_id: Vector2i) -> HealerEnemy:

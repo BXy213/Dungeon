@@ -247,8 +247,10 @@ func _apply_buff_effect(buff: BuffInstance) -> void:
 		
 		BuffType.FROST_ARMOR:
 			# 寒冰护甲 - 减伤+反击减速效果，在take_damage中检查
+			# strength 存储减伤百分比（如0.5表示50%减伤）
+			# 反击减速强度为 strength * 0.8
 			if owner_character:
-				print("  ❄️ 寒冰护甲效果生效: 减伤并反击减速")
+				print("  ❄️ 寒冰护甲效果生效: 减伤", int(buff.strength * 100), "% 并反击减速", int(buff.strength * 0.8 * 100), "%")
 
 func _remove_buff_effect(buff: BuffInstance) -> void:
 	"""移除Buff效果"""

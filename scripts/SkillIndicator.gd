@@ -7,6 +7,7 @@ var skill_color: Color = Color.WHITE
 var in_range: bool = true
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
 var highlighted_enemy: Node = null  # 当前高亮的敌人
+var highlight_mask: Node = null  # 当前高亮mask节点
 
 # 🎯 射程限制相关
 var clamped_position: Vector2 = Vector2.ZERO  # 被限制后的准心位置
@@ -32,6 +33,7 @@ func hide_indicator() -> void:
 	if highlighted_enemy and is_instance_valid(highlighted_enemy):
 		remove_enemy_highlight(highlighted_enemy)
 	highlighted_enemy = null
+	highlight_mask = null
 
 func _process(_delta: float) -> void:
 	if not is_active:
@@ -111,20 +113,46 @@ func find_enemy_at_cursor(tolerance: float = 50.0) -> Node:
 	return closest_enemy
 
 func add_enemy_highlight(enemy: Node) -> void:
-	"""为敌人添加高亮效果"""
-	if enemy:
-		# 直接修改精灵颜色进行高亮
-		var sprite = enemy.get_node_or_null("Sprite2D")
-		if sprite:
-			sprite.modulate = Color(skill_color.r + 0.5, skill_color.g + 0.5, skill_color.b + 0.5, 1.0)
+	"""为敌人添加高亮效果（使用mask层）"""
+	if not enemy:
+		return
+	
+	var sprite = enemy.get_node_or_null("Sprite2D")
+	if not sprite:
+		return
+	
+	# 创建高亮mask层
+	highlight_mask = ColorRect.new()
+	highlight_mask.name = "HighlightMask"
+	
+	# 设置mask的大小和位置（匹配精灵）
+	var sprite_size = sprite.texture.get_size() * sprite.scale
+	highlight_mask.size = sprite_size
+	highlight_mask.position = -sprite_size / 2  # 居中
+	
+	# 设置高亮颜色（半透明白色叠加）
+	highlight_mask.color = Color(1.0, 1.0, 1.0, 0.4)
+	
+	# 设置blend模式和z_index
+	highlight_mask.z_index = 1  # 在精灵之上
+	
+	# 添加到敌人节点（不是Sprite2D）
+	enemy.add_child(highlight_mask)
+	
+	print("🎯 为敌人添加高亮mask: ", enemy.character_name if "character_name" in enemy else enemy.name)
 
 func remove_enemy_highlight(enemy: Node) -> void:
-	"""移除敌人的高亮效果"""
-	if enemy:
-		# 恢复原色
-		var sprite = enemy.get_node_or_null("Sprite2D")
-		if sprite:
-			sprite.modulate = Color.WHITE
+	"""移除敌人的高亮效果（删除mask层）"""
+	if not enemy or not is_instance_valid(enemy):
+		return
+	
+	# 查找并删除高亮mask
+	var mask = enemy.get_node_or_null("HighlightMask")
+	if mask:
+		mask.queue_free()
+		print("🎯 移除敌人高亮mask: ", enemy.character_name if "character_name" in enemy else enemy.name)
+	
+	highlight_mask = null
 
 func _draw() -> void:
 	if not is_active:

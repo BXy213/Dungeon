@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://silverkey001"]
+
+[ext_resource type="Script" uid="uid://omujcrvmkwey" path="res://scripts/SilverKey.gd" id="1_silverkey"]
+[ext_resource type="Texture2D" uid="uid://bp4d4xbks7q64" path="res://art/silverkey.png" id="2_silverkey_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_silverkey"]
+size = Vector2(32, 32)
+
+[node name="SilverKey" type="Area2D"]
+collision_layer = 0
+script = ExtResource("1_silverkey")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.0567376, 0.0740741)
+texture = ExtResource("2_silverkey_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_silverkey")

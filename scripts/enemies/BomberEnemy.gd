@@ -16,7 +16,7 @@ func _init():
 	character_name = "自爆兵"
 	max_health = 60  # 血量较低
 	health = max_health  # ✅ 修复：初始血量应等于最大血量
-	base_speed = 70.0  # 移速较快
+	base_speed = 60.0  # 移速较快
 	base_attack_damage = 15  # 爆炸伤害会更高
 	attack_range = 80.0  # 近身引爆
 	attack_cooldown = 999.0  # 不使用普通攻击
@@ -142,17 +142,10 @@ func _detonate() -> void:
 	# 标记为已死亡，防止二次引爆
 	is_dead = true
 	
-	# 创建爆炸视觉效果
-	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
-	var explosion = SkillEffectScene.instantiate()
-	explosion.global_position = global_position
-	explosion.skill_type = "aoe"
-	explosion.skill_radius = explosion_radius
-	explosion.damage = int(current_attack_damage * explosion_damage_multiplier)
-	explosion.life_time = 1.0
-	explosion.modulate = Color(1.0, 0.3, 0.0, 0.8)
-	get_tree().current_scene.add_child(explosion)
-	explosion.initialize()
+	# ⚠️ 使用 call_deferred 延迟创建爆炸效果
+	var explosion_position = global_position
+	var damage_to_deal = int(current_attack_damage * explosion_damage_multiplier)
+	call_deferred("_deferred_create_explosion_effect", explosion_position, damage_to_deal)
 	
 	# 对范围内所有目标造成伤害
 	var targets_in_range = _find_targets_in_explosion()
@@ -223,6 +216,19 @@ func execute_chase_behavior() -> void:
 		var direction = (current_target.global_position - global_position).normalized()
 		velocity = direction * current_speed * chase_speed_boost
 		move_and_slide()
+
+func _deferred_create_explosion_effect(explosion_position: Vector2, damage_to_deal: int) -> void:
+	"""延迟创建爆炸效果（在下一帧执行）"""
+	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
+	var explosion = SkillEffectScene.instantiate()
+	explosion.global_position = explosion_position
+	explosion.skill_type = "aoe"
+	explosion.skill_radius = explosion_radius
+	explosion.damage = damage_to_deal
+	explosion.life_time = 1.0
+	explosion.modulate = Color(1.0, 0.3, 0.0, 0.8)
+	get_tree().current_scene.add_child(explosion)
+	explosion.initialize()
 
 ## ========== 静态创建方法 ==========
 

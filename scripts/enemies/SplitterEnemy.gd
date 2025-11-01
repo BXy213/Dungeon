@@ -283,6 +283,26 @@ func execute_chase_behavior() -> void:
 		velocity = direction * current_speed
 		move_and_slide()
 
+func set_projectile_appearance(projectile: Node) -> void:
+	"""
+	设置分裂体弹道外观
+	✅ 重写基类方法，自定义紫色弹道
+	"""
+	var sprite_node = projectile.get_node_or_null("Sprite2D")
+	if sprite_node:
+		# 根据是否为小型分裂体设置不同的颜色
+		if is_mini_split:
+			sprite_node.modulate = Color(0.6, 0.3, 0.6)  # 浅紫色弹道（小型分裂体）
+			sprite_node.scale = Vector2(0.22, 0.22)  # 更小的弹道
+			print("  🎨 小分裂体弹道外观: 浅紫色, 大小 0.22")
+		else:
+			sprite_node.modulate = Color(0.8, 0.2, 0.8)  # 紫色弹道（普通分裂体）
+			sprite_node.scale = Vector2(0.32, 0.32)  # 中等大小
+			print("  🎨 分裂体弹道外观: 紫色, 大小 0.32")
+	
+	# 设置弹道速度
+	projectile.speed = 300
+
 ## ========== 静态创建方法 ==========
 
 static func create_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
