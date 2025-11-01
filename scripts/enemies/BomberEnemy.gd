@@ -16,9 +16,9 @@ func _init():
 	character_name = "自爆兵"
 	max_health = 60  # 血量较低
 	health = max_health  # ✅ 修复：初始血量应等于最大血量
-	base_speed = 100.0  # 移速较快
+	base_speed = 70.0  # 移速较快
 	base_attack_damage = 15  # 爆炸伤害会更高
-	attack_range = 100.0  # 近身引爆
+	attack_range = 80.0  # 近身引爆
 	attack_cooldown = 999.0  # 不使用普通攻击
 	experience_reward = 40
 	
@@ -84,13 +84,15 @@ func setup_visuals() -> void:
 	var bomber_sprite = get_node_or_null("Sprite2D")
 	if bomber_sprite:
 		bomber_sprite.modulate = Color(1.0, 0.5, 0.0)  # 橙色
-		print("  ✓ 自爆兵贴图颜色已设置为橙色")
+		print("  ✓ 自爆兵贴图颜色已设置为橙色, visible: ", bomber_sprite.visible, ", scale: ", bomber_sprite.scale)
 		
 		# 重新创建脉冲动画
 		var tween = create_tween()
 		tween.set_loops()
 		tween.tween_property(bomber_sprite, "modulate:a", 0.5, 0.5)
 		tween.tween_property(bomber_sprite, "modulate:a", 1.0, 0.5)
+	else:
+		print("  ⚠️ 自爆兵setup_visuals()时Sprite2D不存在！")
 
 ## ========== 自爆兵AI行为 ==========
 
@@ -137,6 +139,9 @@ func _detonate() -> void:
 	
 	print("💣 自爆兵引爆! 位置: ", global_position)
 	
+	# 标记为已死亡，防止二次引爆
+	is_dead = true
+	
 	# 创建爆炸视觉效果
 	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
 	var explosion = SkillEffectScene.instantiate()
@@ -158,8 +163,20 @@ func _detonate() -> void:
 			target.take_damage(explosion_damage, self)
 			print("  💥 爆炸伤害: ", target.name, " 受到 ", explosion_damage, " 点伤害")
 	
-	# 自己死亡（不触发二次爆炸）
-	is_dead = true
+	# ✅ 调用父类die()来正确处理死亡逻辑（发出信号、掉落经验等）
+	# 但跳过动画，直接销毁
+	character_died.emit(self)
+	
+	# 掉落经验和物品
+	drop_rewards()
+	
+	# 通知房间敌人死亡
+	notify_room_enemy_death()
+	
+	# 发出敌人击败信号
+	enemy_defeated.emit(self, experience_reward)
+	
+	# 立即销毁（不播放死亡动画）
 	queue_free()
 
 func _find_targets_in_explosion() -> Array:
@@ -192,7 +209,7 @@ func die() -> void:
 	
 	print("💣 自爆兵被击杀，触发爆炸!")
 	_detonate()
-	# 不调用super.die()，因为_detonate()会处理死亡
+	# ✅ _detonate()已经处理了所有死亡逻辑（包括信号发送、掉落等）
 
 ## ========== 攻击和追击行为 ==========
 
@@ -206,4 +223,13 @@ func execute_chase_behavior() -> void:
 		var direction = (current_target.global_position - global_position).normalized()
 		velocity = direction * current_speed * chase_speed_boost
 		move_and_slide()
+
+## ========== 静态创建方法 ==========
+
+static func create_bomber_enemy(enemy_room_id: Vector2i) -> BomberEnemy:
+	"""静态工厂方法：创建自爆兵"""
+	var bomber = BomberEnemy.new()
+	bomber.is_room_enemy = true
+	bomber.room_id = enemy_room_id
+	return bomber
 

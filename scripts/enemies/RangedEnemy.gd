@@ -199,7 +199,7 @@ func set_projectile_appearance(projectile: Node) -> void:
 	
 	# 设置更快的弹道速度
 	if projectile.has_method("set"):
-		projectile.speed = 450  # 比普通弹道更快
+		projectile.speed = 350  # 比普通弹道更快
 
 ## ========== 静态工厂方法 ==========
 

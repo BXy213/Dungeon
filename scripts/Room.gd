@@ -151,10 +151,12 @@ func generate_enemies() -> void:
 			
 			# 设置敌人的房间ID
 			enemy.room_id = room_id
-			print("🏠 生成 ", enemy.character_name, " 在房间 ", room_id)
+			print("🏠 生成 ", enemy.character_name, " (", enemy_type, ") 在位置: ", enemy_pos, " 房间: ", room_id)
 			
 			enemies_container.add_child(enemy)
 			enemies.append(enemy)
+			
+			print("  ✅ ", enemy.character_name, " 已添加到场景树，可见性: ", enemy.visible, ", z_index: ", enemy.z_index)
 			
 			# 连接敌人死亡信号
 			enemy.character_died.connect(_on_enemy_character_died)
@@ -178,30 +180,57 @@ func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[Str
 	
 	# 前三个房间的判断（通过探索顺序或距离判断）
 	var distance_from_start = abs(room_id.x) + abs(room_id.y)  # 曼哈顿距离
-	var is_early_room = distance_from_start <= 2  # 距离起始房间较近的前几个房间
 	
-	if is_early_room:
-		# 前三个房间：只刷新普通近战和远程小兵
-		var soldier_count = randi() % 3 + 2  # 2-4个普通士兵
-		for i in range(soldier_count):
-			if randf() < 0.6:  # 60%概率近战
+	if distance_from_start <= 2:
+		# 前三个房间：生成8-10个基础敌人（近战、远程、爆破者）
+		var enemy_count = randi() % 3 + 4  # 4-6个敌人
+		for i in range(enemy_count):
+			var rand = randf()
+			if rand < 0.5:  # 50%概率近战
 				enemies_to_spawn.append("melee_soldier")
-			else:  # 40%概率远程
+			elif rand < 0.85:  # 35%概率远程
 				enemies_to_spawn.append("ranged_soldier")
-		print("🥉 早期房间: ", room_id, " 距离起始点: ", distance_from_start)
+			else:  # 15%概率爆破者
+				enemies_to_spawn.append("bomber")
+		print("🥉 早期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
 	else:
-		# 其他房间：可能刷新精英近战士兵 + 普通士兵
-		var soldier_count = randi() % 3 + 1  # 1-3个普通士兵
-		for i in range(soldier_count):
-			if randf() < 0.5:  # 50%概率近战
-				enemies_to_spawn.append("melee_soldier")
-			else:  # 50%概率远程
-				enemies_to_spawn.append("ranged_soldier")
+		# 其他房间：生成8-10个混合敌人（包含精英、治疗者、分裂者等）
+		var enemy_count = randi() % 3 + 8  # 8-10个敌人
+		var has_elite = false
+		var has_healer = false
 		
-		# 至多一个精英近战士兵
-		if randf() < 0.7:  # 70%概率生成精英
-			enemies_to_spawn.append("elite_melee")
-		print("⭐ 后期房间: ", room_id, " 距离起始点: ", distance_from_start)
+		for i in range(enemy_count):
+			# 优先确保有1个精英和1个治疗者
+			if i == 0 and randf() < 0.8:  # 80%概率有精英
+				enemies_to_spawn.append("elite_melee")
+				has_elite = true
+				continue
+			
+			if i == 1 and randf() < 0.6:  # 60%概率有治疗者
+				enemies_to_spawn.append("healer")
+				has_healer = true
+				continue
+			
+			# 其余敌人随机生成
+			var rand = randf()
+			if rand < 0.3:  # 30%概率近战
+				enemies_to_spawn.append("melee_soldier")
+			elif rand < 0.5:  # 20%概率远程
+				enemies_to_spawn.append("ranged_soldier")
+			elif rand < 0.65:  # 15%概率爆破者
+				enemies_to_spawn.append("bomber")
+			elif rand < 0.8:  # 15%概率分裂者
+				enemies_to_spawn.append("splitter")
+			elif not has_elite and rand < 0.9:  # 10%概率额外精英
+				enemies_to_spawn.append("elite_melee")
+				has_elite = true
+			elif not has_healer:  # 10%概率额外治疗者
+				enemies_to_spawn.append("healer")
+				has_healer = true
+			else:  # 默认近战
+				enemies_to_spawn.append("melee_soldier")
+		
+		print("⭐ 后期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
 	
 	return enemies_to_spawn
 
@@ -210,6 +239,9 @@ const MeleeEnemyScript = preload("res://scripts/enemies/MeleeEnemy.gd")
 const RangedEnemyScript = preload("res://scripts/enemies/RangedEnemy.gd")
 const EliteEnemyScript = preload("res://scripts/enemies/EliteEnemy.gd")
 const BossEnemyScript = preload("res://scripts/enemies/BossEnemy.gd")
+const HealerEnemyScript = preload("res://scripts/enemies/HealerEnemy.gd")
+const BomberEnemyScript = preload("res://scripts/enemies/BomberEnemy.gd")
+const SplitterEnemyScript = preload("res://scripts/enemies/SplitterEnemy.gd")
 
 func create_enemy_by_type(enemy_type: String) -> Node:
 	"""根据类型创建敌人（使用新的敌人子类）"""
@@ -225,6 +257,12 @@ func create_enemy_by_type(enemy_type: String) -> Node:
 			enemy = EliteEnemyScript.create_elite_enemy(room_id)
 		"boss":
 			enemy = BossEnemyScript.create_boss_enemy(room_id)
+		"healer":
+			enemy = HealerEnemyScript.create_healer_enemy(room_id)
+		"bomber":
+			enemy = BomberEnemyScript.create_bomber_enemy(room_id)
+		"splitter":
+			enemy = SplitterEnemyScript.create_splitter_enemy(room_id)
 		_:
 			print("⚠️ 未知敌人类型: ", enemy_type, "，默认创建近战小兵")
 			enemy = MeleeEnemyScript.create_melee_enemy(room_id)
@@ -383,14 +421,19 @@ func create_enemy_by_type_from_data(enemy_data: Dictionary) -> Node:
 
 func _on_enemy_character_died(enemy: CharacterBase) -> void:
 	"""敌人死亡处理"""
-	print("👹 敌人死亡: ", enemy.character_name)
+	print("👹 房间 ", room_id, " - 敌人死亡: ", enemy.character_name)
+	print("  当前计数: ", alive_enemy_count, " → ", alive_enemy_count - 1)
 	
 	# 从敌人列表中移除死亡的敌人
 	if enemy in enemies:
 		enemies.erase(enemy)
+		print("  ✅ 已从enemies列表中移除")
+	else:
+		print("  ⚠️ 该敌人不在enemies列表中！")
 	
 	# 更新存活敌人计数
 	alive_enemy_count = max(0, alive_enemy_count - 1)
+	print("  剩余敌人数: ", alive_enemy_count, " (列表中实际: ", enemies.size(), ")")
 	
 	# 发出信号
 	enemy_died_in_room.emit(room_id, alive_enemy_count)

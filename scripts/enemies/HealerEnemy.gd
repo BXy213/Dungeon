@@ -87,7 +87,9 @@ func setup_visuals() -> void:
 	var healer_sprite = get_node_or_null("Sprite2D")
 	if healer_sprite:
 		healer_sprite.modulate = Color(0.0, 1.0, 0.5)  # 青绿色
-		print("  ✓ 治疗者贴图颜色已设置为青绿色")
+		print("  ✓ 治疗者贴图颜色已设置为青绿色, visible: ", healer_sprite.visible, ", scale: ", healer_sprite.scale)
+	else:
+		print("  ⚠️ 治疗者setup_visuals()时Sprite2D不存在！")
 
 ## ========== 治疗者AI行为 ==========
 
@@ -210,4 +212,13 @@ func execute_attack_behavior() -> void:
 func execute_chase_behavior() -> void:
 	"""执行追击行为（由_ai_update处理）"""
 	pass
+
+## ========== 静态创建方法 ==========
+
+static func create_healer_enemy(enemy_room_id: Vector2i) -> HealerEnemy:
+	"""静态工厂方法：创建治疗者"""
+	var healer = HealerEnemy.new()
+	healer.is_room_enemy = true
+	healer.room_id = enemy_room_id
+	return healer
 

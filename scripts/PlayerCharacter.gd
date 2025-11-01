@@ -32,10 +32,10 @@ func _init():
 	is_controllable = true
 	
 	# 玩家属性
-	max_health = 100
-	health = 100
-	max_mana = 100
-	mana = 100
+	max_health = 300
+	health = 300
+	max_mana = 200
+	mana = 200
 	base_speed = 200.0
 	base_attack_damage = 25
 	attack_range = 400.0
