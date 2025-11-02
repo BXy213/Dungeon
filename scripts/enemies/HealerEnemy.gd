@@ -5,11 +5,28 @@ class_name HealerEnemy
 
 ## ========== 治疗者特有属性 ==========
 
+# 治疗相关
 var heal_range: float = 300.0  # 治疗范围
 var heal_amount: int = 30  # 治疗量
 var heal_cooldown: float = 5.0  # 治疗冷却
 var heal_timer: Timer = null
 var can_heal: bool = true
+
+# AI相关
+var current_target: Node = null  # 追击目标（玩家）
+var detection_range: float = 350.0
+var flee_range: float = 200.0  # 逃跑距离
+
+## ========== 静态创建方法 ==========
+
+static func create_healer_enemy(enemy_room_id: Vector2i) -> HealerEnemy:
+	"""静态工厂方法：创建治疗者"""
+	var healer = HealerEnemy.new()
+	healer.is_room_enemy = true
+	healer.room_id = enemy_room_id
+	return healer
+
+## ========== 初始化方法 ==========
 
 func _init():
 	super._init()
@@ -91,11 +108,11 @@ func setup_visuals() -> void:
 	else:
 		print("  ⚠️ 治疗者setup_visuals()时Sprite2D不存在！")
 
-## ========== 治疗者AI行为 ==========
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
+	# AI逻辑在_ai_update中处理
 
-var current_target: Node = null  # 追击目标（玩家）
-var detection_range: float = 350.0
-var flee_range: float = 200.0  # 逃跑距离
+## ========== 治疗者AI行为 ==========
 
 func _ai_update():
 	"""AI更新逻辑"""
@@ -198,10 +215,6 @@ func _maintain_distance(player: Node) -> void:
 		# 距离合适，停止
 		velocity = Vector2.ZERO
 
-func _physics_process(delta: float) -> void:
-	super._physics_process(delta)
-	# AI逻辑在_ai_update中处理
-
 ## ========== 攻击行为 ==========
 
 func execute_attack_behavior() -> void:
@@ -227,12 +240,8 @@ func set_projectile_appearance(projectile: Node) -> void:
 	# 设置弹道速度
 	projectile.speed = 280  # 较慢的速度
 
-## ========== 静态创建方法 ==========
+## ========== 辅助方法 ==========
 
-static func create_healer_enemy(enemy_room_id: Vector2i) -> HealerEnemy:
-	"""静态工厂方法：创建治疗者"""
-	var healer = HealerEnemy.new()
-	healer.is_room_enemy = true
-	healer.room_id = enemy_room_id
-	return healer
-
+func get_ai_description() -> String:
+	"""获取AI描述"""
+	return "治疗者AI - 辅助治疗，远离玩家"

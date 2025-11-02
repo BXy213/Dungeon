@@ -277,13 +277,11 @@ func _on_victory_restart_pressed() -> void:
 	print("🔄 从胜利面板重新开始游戏")
 	hide_victory_panel()
 	
-	# 重置统计数据
-	enemies_killed = 0
-	total_damage_dealt = 0
-	boss_defeated = false
-	
+	# 恢复游戏状态（取消暂停）
 	resume_game()
-	restart_game()
+	
+	# ✅ 重新加载整个游戏场景（重新生成地牢、重置玩家状态）
+	get_tree().reload_current_scene()
 
 func _on_victory_menu_pressed() -> void:
 	"""胜利面板 - 返回主菜单"""
@@ -304,15 +302,11 @@ func restart_game() -> void:
 	# 隐藏死亡面板
 	hide_death_panel()
 	
-	# 重生玩家
-	if player:
-		player.respawn()
-	
-	# 重置所有敌人血量
-	reset_all_enemies()
-	
-	# 恢复游戏
+	# 恢复游戏状态（取消暂停）
 	resume_game()
+	
+	# ✅ 重新加载整个游戏场景（重新生成地牢、重置玩家状态）
+	get_tree().reload_current_scene()
 
 func reset_all_enemies() -> void:
 	var enemies = get_tree().get_nodes_in_group("enemies")

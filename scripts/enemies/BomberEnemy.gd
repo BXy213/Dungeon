@@ -5,9 +5,26 @@ class_name BomberEnemy
 
 ## ========== 自爆兵特有属性 ==========
 
+# 爆炸相关
 var explosion_radius: float = 200.0  # 爆炸范围
 var explosion_damage_multiplier: float = 2.0  # 爆炸伤害倍率（基于攻击力）
 var chase_speed_boost: float = 1.3  # 追击时速度提升
+
+# AI相关
+var current_target: Node = null
+var detection_range: float = 500.0
+var detonate_range: float = 80.0  # 引爆距离
+
+## ========== 静态创建方法 ==========
+
+static func create_bomber_enemy(enemy_room_id: Vector2i) -> BomberEnemy:
+	"""静态工厂方法：创建自爆兵"""
+	var bomber = BomberEnemy.new()
+	bomber.is_room_enemy = true
+	bomber.room_id = enemy_room_id
+	return bomber
+
+## ========== 初始化方法 ==========
 
 func _init():
 	super._init()
@@ -94,11 +111,22 @@ func setup_visuals() -> void:
 	else:
 		print("  ⚠️ 自爆兵setup_visuals()时Sprite2D不存在！")
 
-## ========== 自爆兵AI行为 ==========
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
+	
+	if is_dead or not current_target:
+		return
+	
+	var distance_to_target = get_distance_to(current_target)
+	
+	# 检查是否在引爆范围内
+	if distance_to_target <= detonate_range:
+		_detonate()
+	else:
+		# 快速冲向目标
+		execute_chase_behavior()
 
-var current_target: Node = null
-var detection_range: float = 500.0
-var detonate_range: float = 80.0  # 引爆距离
+## ========== 自爆兵AI行为 ==========
 
 func _find_target():
 	"""寻找玩家目标"""
@@ -114,21 +142,6 @@ func _find_target():
 			# 如果非常接近，立即引爆
 			if distance <= detonate_range:
 				_detonate()
-
-func _physics_process(delta: float) -> void:
-	super._physics_process(delta)
-	
-	if is_dead or not current_target:
-		return
-	
-	var distance_to_target = get_distance_to(current_target)
-	
-	# 检查是否在引爆范围内
-	if distance_to_target <= detonate_range:
-		_detonate()
-	else:
-		# 快速冲向目标
-		execute_chase_behavior()
 
 ## ========== 自爆逻辑 ==========
 
@@ -193,7 +206,18 @@ func _find_targets_in_explosion() -> Array:
 	
 	return targets
 
-## ========== 重写死亡逻辑 ==========
+func _deferred_create_explosion_effect(explosion_position: Vector2, damage_to_deal: int) -> void:
+	"""延迟创建爆炸效果（在下一帧执行）"""
+	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
+	var explosion = SkillEffectScene.instantiate()
+	explosion.global_position = explosion_position
+	explosion.skill_type = "aoe"
+	explosion.skill_radius = explosion_radius
+	explosion.damage = damage_to_deal
+	explosion.life_time = 1.0
+	explosion.modulate = Color(1.0, 0.3, 0.0, 0.8)
+	get_tree().current_scene.add_child(explosion)
+	explosion.initialize()
 
 func die() -> void:
 	"""死亡时引爆"""
@@ -217,25 +241,8 @@ func execute_chase_behavior() -> void:
 		velocity = direction * current_speed * chase_speed_boost
 		move_and_slide()
 
-func _deferred_create_explosion_effect(explosion_position: Vector2, damage_to_deal: int) -> void:
-	"""延迟创建爆炸效果（在下一帧执行）"""
-	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
-	var explosion = SkillEffectScene.instantiate()
-	explosion.global_position = explosion_position
-	explosion.skill_type = "aoe"
-	explosion.skill_radius = explosion_radius
-	explosion.damage = damage_to_deal
-	explosion.life_time = 1.0
-	explosion.modulate = Color(1.0, 0.3, 0.0, 0.8)
-	get_tree().current_scene.add_child(explosion)
-	explosion.initialize()
+## ========== 辅助方法 ==========
 
-## ========== 静态创建方法 ==========
-
-static func create_bomber_enemy(enemy_room_id: Vector2i) -> BomberEnemy:
-	"""静态工厂方法：创建自爆兵"""
-	var bomber = BomberEnemy.new()
-	bomber.is_room_enemy = true
-	bomber.room_id = enemy_room_id
-	return bomber
-
+func get_ai_description() -> String:
+	"""获取AI描述"""
+	return "自爆兵AI - 冲向玩家并引爆"

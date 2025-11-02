@@ -5,9 +5,26 @@ class_name SplitterEnemy
 
 ## ========== 分裂体特有属性 ==========
 
+# 分裂相关
 @export var split_count: int = 3  # 分裂数量
 @export var is_mini_split: bool = false  # 是否为分裂出来的小型体
 var mini_split_multiplier: float = 0.5  # 小型体属性倍率
+
+# AI相关
+var current_target: Node = null
+var detection_range: float = 400.0
+var lose_target_distance: float = 600.0
+
+## ========== 静态创建方法 ==========
+
+static func create_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
+	"""静态工厂方法：创建分裂体"""
+	var splitter = SplitterEnemy.new()
+	splitter.is_room_enemy = true
+	splitter.room_id = enemy_room_id
+	return splitter
+
+## ========== 初始化方法 ==========
 
 func _init():
 	super._init()
@@ -118,25 +135,6 @@ func setup_visuals() -> void:
 		var type_name = "小分裂体" if is_mini_split else "分裂体"
 		print("  ⚠️ ", type_name, "setup_visuals()时Sprite2D不存在！")
 
-## ========== 分裂体AI行为 ==========
-
-var current_target: Node = null
-var detection_range: float = 400.0
-var lose_target_distance: float = 600.0
-
-func _find_target():
-	"""寻找玩家目标"""
-	if is_dead:
-		return
-	
-	var player = get_tree().get_first_node_in_group("players")
-	if player:
-		var distance = global_position.distance_to(player.global_position)
-		if distance <= detection_range:
-			current_target = player
-		elif distance > lose_target_distance:
-			current_target = null
-
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	
@@ -152,6 +150,21 @@ func _physics_process(delta: float) -> void:
 		# 追击
 		execute_chase_behavior()
 
+## ========== 分裂体AI行为 ==========
+
+func _find_target():
+	"""寻找玩家目标"""
+	if is_dead:
+		return
+	
+	var player = get_tree().get_first_node_in_group("players")
+	if player:
+		var distance = global_position.distance_to(player.global_position)
+		if distance <= detection_range:
+			current_target = player
+		elif distance > lose_target_distance:
+			current_target = null
+
 ## ========== 分裂逻辑 ==========
 
 func die() -> void:
@@ -162,18 +175,18 @@ func die() -> void:
 	var type_name = "小分裂体" if is_mini_split else "分裂体"
 	print("💀 ", type_name, " 开始死亡流程")
 	
-	# ⚠️ 注意：不要在这里设置is_dead = true，否则父类die()会直接返回
 	# 只有普通分裂体会分裂，小型体不会
 	if not is_mini_split:
 		print("🔀 分裂体死亡，正在分裂成 ", split_count, " 个小型体!")
+		# ✅ 标记为已死亡，防止重复执行
+		is_dead = true
+		# ✅ 启动分裂流程（小分裂体生成完成后才会调用父类die()）
 		_spawn_mini_splits()
 	else:
 		print("🔀 小分裂体死亡，不会分裂")
-	
-	# ✅ 调用父类die()处理死亡逻辑（设置is_dead、发出信号、掉落经验等）
-	print("  → 调用父类die()，将发出character_died信号")
-	super.die()
-	print("  ✅ ", type_name, " 死亡流程完成")
+		# ✅ 小分裂体直接调用父类die()
+		super.die()
+		print("  ✅ ", type_name, " 死亡流程完成")
 
 func _spawn_mini_splits() -> void:
 	"""生成小型分裂体"""
@@ -201,12 +214,12 @@ func _deferred_spawn_mini_splits(current_room: Node, enemies_container: Node, de
 	for i in range(split_count):
 		var mini_split = _create_mini_split()
 		if mini_split:
-			# 计算生成位置（围绕死亡位置）
+			# 计算生成位置（围绕死亡位置），并确保不与障碍物重叠
 			var angle = (TAU / split_count) * i
-			var offset = Vector2(cos(angle), sin(angle)) * 40.0
+			var base_offset = Vector2(cos(angle), sin(angle)) * 40.0
 			
-			# ✅ 将全局位置转换为相对于enemies_container的本地位置
-			var spawn_global_pos = death_position + offset
+			# ✅ 查找有效的生成位置（避开障碍物）
+			var spawn_global_pos = _find_valid_spawn_position(death_position, base_offset)
 			
 			mini_split.room_id = room_id
 			
@@ -243,6 +256,10 @@ func _deferred_spawn_mini_splits(current_room: Node, enemies_container: Node, de
 				current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
 			
 			print("  ✅ 小型分裂体 #", i+1, " 完全初始化完成")
+	
+	# ✅ 所有小分裂体生成完成后，再处理父分裂体的死亡逻辑
+	print("🔀 所有小型分裂体已生成，开始处理父分裂体的死亡逻辑")
+	_finalize_parent_death()
 
 func _create_mini_split() -> SplitterEnemy:
 	"""创建小型分裂体实例"""
@@ -303,11 +320,117 @@ func set_projectile_appearance(projectile: Node) -> void:
 	# 设置弹道速度
 	projectile.speed = 300
 
-## ========== 静态创建方法 ==========
+func _finalize_parent_death() -> void:
+	"""
+	完成父分裂体的死亡逻辑
+	
+	注意：is_dead 已经在 die() 中设置为 true
+	这里手动执行父类死亡流程中的其他操作
+	"""
+	# 改变状态
+	change_state(CharacterState.DEAD)
+	
+	# 清除所有Buff
+	if buff_system:
+		buff_system.clear_all_buffs()
+	
+	# 停止移动
+	velocity = Vector2.ZERO
+	set_physics_process(false)
+	
+	# 播放死亡效果
+	play_death_effect()
+	
+	# 发出死亡信号
+	character_died.emit(self)
+	
+	# 播放死亡动画（会在1秒后销毁）
+	play_death_animation()
+	
+	# 掉落奖励
+	drop_rewards()
+	
+	# 通知房间敌人死亡
+	notify_room_enemy_death()
+	
+	# 发出敌人击败信号
+	enemy_defeated.emit(self, experience_reward)
+	
+	print("  ✅ 父分裂体死亡流程完成，等待动画后销毁")
 
-static func create_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
-	"""静态工厂方法：创建分裂体"""
-	var splitter = SplitterEnemy.new()
-	splitter.is_room_enemy = true
-	splitter.room_id = enemy_room_id
-	return splitter
+## ========== 辅助方法 ==========
+
+func _find_valid_spawn_position(center: Vector2, preferred_offset: Vector2) -> Vector2:
+	"""
+	查找有效的生成位置（避开障碍物并确保在房间内）
+	
+	参数：
+	- center: 中心位置（死亡位置）
+	- preferred_offset: 首选偏移量
+	
+	返回：不与障碍物重叠且在房间内的有效位置
+	"""
+	# 获取当前房间边界
+	var room_bounds = get_current_room_bounds()
+	
+	var preferred_pos = center + preferred_offset
+	
+	# 检查首选位置是否有效（无障碍物且在房间内）
+	if _is_position_valid(preferred_pos) and room_bounds.has_point(preferred_pos):
+		return preferred_pos
+	
+	# 如果首选位置无效，尝试在周围寻找有效位置
+	var search_radius = 60.0  # 搜索半径
+	var max_attempts = 12  # 增加最大尝试次数
+	
+	for attempt in range(max_attempts):
+		var random_angle = randf() * TAU
+		var random_distance = randf_range(30.0, search_radius)
+		var test_offset = Vector2(cos(random_angle), sin(random_angle)) * random_distance
+		var test_pos = center + test_offset
+		
+		if _is_position_valid(test_pos) and room_bounds.has_point(test_pos):
+			print("    ✅ 找到有效位置（尝试 ", attempt + 1, " 次）: ", test_pos)
+			return test_pos
+	
+	# 如果所有尝试都失败，将中心位置限制在房间边界内
+	print("    ⚠️ 无法找到有效位置，使用限制后的中心位置")
+	var clamped_center = Vector2(
+		clamp(center.x, room_bounds.position.x, room_bounds.position.x + room_bounds.size.x),
+		clamp(center.y, room_bounds.position.y, room_bounds.position.y + room_bounds.size.y)
+	)
+	return clamped_center
+
+func _is_position_valid(check_position: Vector2) -> bool:
+	"""
+	检查位置是否有效（不与障碍物重叠）
+	
+	使用物理查询检测该位置是否有障碍物
+	"""
+	if not is_inside_tree():
+		return true  # 如果不在场景树中，无法检测，默认有效
+	
+	var space_state = get_world_2d().direct_space_state
+	if not space_state:
+		return true
+	
+	# 创建一个小的矩形区域查询（小分裂体的大小）
+	var query = PhysicsShapeQueryParameters2D.new()
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(12, 12)  # 稍大于小分裂体的碰撞体积（10x10）
+	query.shape = shape
+	query.transform = Transform2D(0, check_position)
+	query.collision_mask = 1  # 只检测障碍物层（第1层）
+	
+	# 执行查询
+	var results = space_state.intersect_shape(query, 1)
+	
+	# 如果没有碰撞，位置有效
+	return results.is_empty()
+
+func get_ai_description() -> String:
+	"""获取AI描述"""
+	if is_mini_split:
+		return "小分裂体AI - 快速追击"
+	else:
+		return "分裂体AI - 死亡时分裂成小型体"

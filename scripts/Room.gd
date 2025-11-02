@@ -81,35 +81,141 @@ func setup_room_content() -> void:
 	print("房间 ", room_id, " 内容设置完成，状态: ", RoomState.keys()[room_state])
 
 func generate_obstacles() -> void:
-	"""生成障碍物（初始房间不生成）"""
+	"""生成障碍物（网格化布局，避免形成封闭环）"""
 	# 初始房间不生成障碍物，避免卡死玩家
 	if room_id == Vector2i(0, 0):
 		print("🏠 初始房间 (0,0) 不生成障碍物")
 		return
 	
-	# 生成障碍物
+	print("🧱 开始生成网格化障碍物，房间: ", room_id)
+	
 	var obstacle_scene = preload("res://Scenes/Obstacle.tscn")
+	var grid_size = 64  # 网格大小（与障碍物大小一致）
 	
-	var safe_margin = 200
-	var spawn_area = Rect2(
-		Vector2(safe_margin, safe_margin),
-		room_size - Vector2(safe_margin * 2, safe_margin * 2)
-	)
+	# 计算网格数量（留出边缘空间）
+	var margin = 150  # 边缘留白
+	var grid_area_width = room_size.x - margin * 2
+	var grid_area_height = room_size.y - margin * 2
+	var grid_cols = int(grid_area_width / grid_size)
+	var grid_rows = int(grid_area_height / grid_size)
 	
-	for i in range(obstacle_count):
+	print("  📐 网格尺寸: ", grid_cols, "x", grid_rows, " (", grid_cols * grid_rows, " 格子)")
+	
+	# 创建网格地图（0=空，1=障碍）
+	var grid_map = []
+	for y in range(grid_rows):
+		var row = []
+		for x in range(grid_cols):
+			row.append(0)
+		grid_map.append(row)
+	
+	# 随机放置障碍物（约15-25%的格子）
+	var obstacle_density = randf_range(0.15, 0.25)
+	var target_obstacle_count = int(grid_cols * grid_rows * obstacle_density)
+	print("  🎯 目标障碍物数量: ", target_obstacle_count, " (密度: ", int(obstacle_density * 100), "%)")
+	
+	var placed_obstacles = []
+	var attempts = 0
+	var max_attempts = target_obstacle_count * 3
+	
+	while placed_obstacles.size() < target_obstacle_count and attempts < max_attempts:
+		attempts += 1
+		
+		# 随机选择一个格子
+		var grid_x = randi() % grid_cols
+		var grid_y = randi() % grid_rows
+		
+		# 跳过已有障碍物的格子
+		if grid_map[grid_y][grid_x] == 1:
+			continue
+		
+		# 临时放置障碍物
+		grid_map[grid_y][grid_x] = 1
+		
+		# 检查连通性（确保不会形成封闭环）
+		if is_grid_connected(grid_map, grid_cols, grid_rows):
+			# 连通性良好，保留这个障碍物
+			placed_obstacles.append(Vector2i(grid_x, grid_y))
+		else:
+			# 连通性被破坏，移除这个障碍物
+			grid_map[grid_y][grid_x] = 0
+	
+	print("  ✅ 成功放置 ", placed_obstacles.size(), " 个障碍物")
+	
+	# 在场景中实例化障碍物
+	for grid_pos in placed_obstacles:
 		var obstacle = obstacle_scene.instantiate()
 		
-		var random_pos = Vector2(
-			randf_range(spawn_area.position.x, spawn_area.position.x + spawn_area.size.x),
-			randf_range(spawn_area.position.y, spawn_area.position.y + spawn_area.size.y)
+		# 计算障碍物的世界坐标（格子中心）
+		var world_pos = Vector2(
+			margin + grid_pos.x * grid_size + grid_size / 2,
+			margin + grid_pos.y * grid_size + grid_size / 2
 		)
 		
-		var random_type = ["wall", "rock", "tree"][randi() % 3]
-		
-		# 使用新的初始化方法
-		obstacle.initialize(random_type, random_pos)
+		# 目前统一生成rock类型（保留类型系统以便将来扩展）
+		obstacle.initialize("rock", world_pos)
 		obstacles_container.add_child(obstacle)
 		obstacles.append(obstacle)
+	
+	print("  🎉 障碍物生成完成")
+
+func is_grid_connected(grid_map: Array, cols: int, rows: int) -> bool:
+	"""使用洪水填充算法检查网格连通性"""
+	# 找到第一个空格子作为起点
+	var start_pos = Vector2i(-1, -1)
+	for y in range(rows):
+		for x in range(cols):
+			if grid_map[y][x] == 0:
+				start_pos = Vector2i(x, y)
+				break
+		if start_pos.x != -1:
+			break
+	
+	# 如果没有空格子，认为连通（虽然这种情况不应该发生）
+	if start_pos.x == -1:
+		return true
+	
+	# 洪水填充，统计可达的空格子数量
+	var visited = {}
+	var queue = [start_pos]
+	visited[start_pos] = true
+	var reachable_count = 0
+	
+	while queue.size() > 0:
+		var current = queue.pop_front()
+		reachable_count += 1
+		
+		# 检查四个方向的邻居
+		var directions = [
+			Vector2i(0, -1),  # 上
+			Vector2i(0, 1),   # 下
+			Vector2i(-1, 0),  # 左
+			Vector2i(1, 0)    # 右
+		]
+		
+		for dir in directions:
+			var next_pos = current + dir
+			
+			# 检查边界
+			if next_pos.x < 0 or next_pos.x >= cols or next_pos.y < 0 or next_pos.y >= rows:
+				continue
+			
+			# 检查是否已访问或是障碍物
+			if next_pos in visited or grid_map[next_pos.y][next_pos.x] == 1:
+				continue
+			
+			visited[next_pos] = true
+			queue.append(next_pos)
+	
+	# 统计总的空格子数量
+	var total_empty_count = 0
+	for y in range(rows):
+		for x in range(cols):
+			if grid_map[y][x] == 0:
+				total_empty_count += 1
+	
+	# 如果所有空格子都可达，则连通
+	return reachable_count == total_empty_count
 
 func generate_enemies() -> void:
 	# 如果是起始房间(0,0)，不生成敌人
@@ -474,6 +580,7 @@ func load_room_data() -> void:
 	var obstacle_scene = preload("res://Scenes/Obstacle.tscn")
 	for obstacle_data in saved_obstacle_data:
 		var obstacle = obstacle_scene.instantiate()
+		# 恢复障碍物的类型和位置
 		obstacle.initialize(obstacle_data.type, obstacle_data.position)
 		obstacles_container.add_child(obstacle)
 		obstacles.append(obstacle)

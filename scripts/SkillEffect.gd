@@ -331,24 +331,21 @@ func is_obstacle_collision(body: Node2D) -> bool:
 func handle_obstacle_collision(body: Node2D) -> void:
 	"""处理障碍物或墙壁碰撞"""
 	var collision_type = "unknown"
-	var is_wall = false
 	
 	# 判断是墙壁还是障碍物
 	if body.name.begins_with("RoomWall"):
 		collision_type = "wall"
-		is_wall = true
 	elif body.has_method("get_obstacle_type"):
 		collision_type = body.get_obstacle_type()
-		is_wall = false
 	
 	print("🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type)
 	
-	# 🌪️ 特殊技能（龙卷风、声波）穿透障碍物，只被墙壁阻挡
-	if skill_type in ["tornado", "sonic_wave"] and not is_wall:
-		print("  ✈️ ", skill_type, " 穿透障碍物，继续飞行")
+	# 🌪️ 特殊技能（龙卷风、声波）穿透障碍物和墙壁，继续飞行
+	if skill_type in ["tornado", "sonic_wave"]:
+		print("  ✈️ ", skill_type, " 穿透阻挡物，继续飞行")
 		return  # 不销毁，继续飞行
 	
-	# 其他技能或碰到墙壁：销毁弹道
+	# 其他技能：销毁弹道
 	print("  💥 弹道被阻挡，销毁")
 	
 	# 延迟禁用碰撞检测，避免物理引擎冲突

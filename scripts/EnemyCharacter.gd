@@ -510,3 +510,31 @@ func get_debug_info() -> Dictionary:
 func get_ai_description() -> String:
 	"""获取AI描述（子类可重写）"""
 	return "基础敌人AI"
+
+func get_current_room_bounds() -> Rect2:
+	"""
+	获取当前房间的全局边界区域
+	
+	返回：Rect2 表示房间的全局坐标区域（包含position和size）
+	如果找不到房间，返回一个默认的大区域
+	"""
+	# 尝试获取当前房间（敌人在Enemies容器中，父节点是房间）
+	var current_room = get_parent().get_parent() if get_parent() and get_parent().get_parent() else null
+	
+	if not current_room:
+		print("⚠️ 无法找到当前房间，使用默认边界")
+		return Rect2(0, 0, 1152, 648)  # 默认房间大小
+	
+	# 获取房间的全局位置和大小
+	var room_global_pos = current_room.global_position if current_room.has_method("get_global_position") else Vector2.ZERO
+	var room_size = current_room.room_size if "room_size" in current_room else Vector2(1152, 648)
+	
+	# 添加边界留白，避免生成在墙壁上
+	var margin = 80.0
+	
+	return Rect2(
+		room_global_pos.x + margin,
+		room_global_pos.y + margin,
+		room_size.x - margin * 2,
+		room_size.y - margin * 2
+	)

@@ -64,7 +64,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 		# 创建汲取特效（从敌人到玩家的连线）
 		create_drain_effect(target_enemy.global_position, player.global_position)
 
-func create_drain_effect(from_pos: Vector2, to_pos: Vector2) -> void:
+func create_drain_effect(from_pos: Vector2, _to_pos: Vector2) -> void:
 	"""创建生命汲取特效"""
 	# 创建起点特效
 	var drain_effect = create_skill_effect("targeted", from_pos)
