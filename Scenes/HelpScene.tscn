@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://helpscene001"]
 
-[ext_resource type="Script" uid="uid://helpmenu001" path="res://scripts/HelpMenu.gd" id="1_help_menu"]
+[ext_resource type="Script" uid="uid://jiaxdjkap0jw" path="res://scripts/HelpMenu.gd" id="1_help_menu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help"]
 bg_color = Color(0.2, 0.2, 0.3, 0.9)
@@ -61,6 +61,23 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
+[node name="GameplayTitle" type="Label" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "🎯 游戏目标"
+
+[node name="GameplayDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "• 找到金钥匙逃离地牢！
+• 探索地牢房间，消灭敌人，收集银钥匙，打开宝箱，获得技能，提升实力！"
+autowrap_mode = 3
+
+[node name="Spacer1" type="Control" parent="ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+
 [node name="MovementTitle" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
@@ -68,14 +85,15 @@ text = "🎮 基础操作"
 
 [node name="MovementDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
-text = "• WASD / 方向键 - 移动角色
-• 鼠标左键 - 选择目标 / 确认技能
-• ESC - 暂停游戏"
+theme_override_font_sizes/font_size = 16
+text = "• WASD - 移动角色探索地牢
+• 鼠标右键 - 释放普攻
+• ESC - 打开/关闭暂停菜单
+• B键 - 打开/关闭技能调配界面"
 autowrap_mode = 3
 
-[node name="Spacer1" type="Control" parent="ScrollContainer/VBoxContainer"]
+[node name="Spacer2" type="Control" parent="ScrollContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 15)
 layout_mode = 2
 
@@ -86,75 +104,15 @@ text = "⚔️ 技能释放"
 
 [node name="SkillDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
-text = "• 1/2/3/4/5 - 释放对应位置的技能
-• Q/E/R/F/Space - 快捷技能键
-• 鼠标左键 - 确认技能目标位置
-• 右键 - 取消技能选择
-• 右下角⚙️按钮 - 打开技能调配面板"
-autowrap_mode = 3
-
-[node name="Spacer2" type="Control" parent="ScrollContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 15)
-layout_mode = 2
-
-[node name="GameplayTitle" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "🎯 游戏目标"
-
-[node name="GameplayDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
-text = "• 探索地牢房间，消灭所有敌人
-• 击败携带银钥匙的敌人获得钥匙
-• 使用银钥匙打开宝箱获得技能奖励
-• 小地图显示房间探索状态：
-  - 🟦 蓝色：当前房间
-  - 🟩 绿色：已探索房间
-  - ⬜ 灰色：未探索房间"
-autowrap_mode = 3
-
-[node name="Spacer3" type="Control" parent="ScrollContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 15)
-layout_mode = 2
-
-[node name="RewardTitle" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "🎁 奖励系统"
-
-[node name="RewardDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
-text = "• 击败敌人获得经验值，升级提升属性
-• 每个房间随机一个敌人携带银钥匙
-• 拾取银钥匙后可开启房间内的宝箱
-• 开启宝箱从3个随机技能中选择1个
-• 靠近宝箱点击使用银钥匙开启"
-autowrap_mode = 3
-
-[node name="Spacer4" type="Control" parent="ScrollContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 15)
-layout_mode = 2
-
-[node name="TipsTitle" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "💡 游戏提示"
-
-[node name="TipsDesc" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
-text = "• 注意观察敌人行为，合理使用技能
-• 保持移动以躲避敌人攻击
-• 技能有冷却时间，注意把握释放时机
-• 血量低时及时使用治疗技能
-• 合理搭配技能，发挥最大战斗力"
+text = "• 1/2/3/4 - 选择对应位置的技能
+• 鼠标左键 - 释放已选择的技能
+• 鼠标右键 - 取消技能选择
+• 在技能调配面板中可以：
+  - 查看所有已拥有的技能
+  - 将技能装备到1-4号位
+  - 移除不需要的技能"
 autowrap_mode = 3
 
 [node name="SpacerBottom" type="Control" parent="ScrollContainer/VBoxContainer"]
@@ -170,4 +128,3 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_help")
 text = "🔙 返回主菜单"
 
 [connection signal="pressed" from="ScrollContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
-

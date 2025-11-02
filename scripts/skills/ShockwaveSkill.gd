@@ -7,7 +7,7 @@ extends SkillBase
 @export var damage_multiplier: float = 2.0  # 伤害倍率（基于玩家攻击力）
 @export var wave_speed: float = 400.0  # 波动速度
 @export var wave_distance: float = 800.0  # 波动距离
-@export var wave_width: float = 40.0  # 波动宽度
+@export var wave_width: float = 50.0  # 波动宽度
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)

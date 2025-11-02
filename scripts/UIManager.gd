@@ -115,6 +115,29 @@ func _ready() -> void:
 	if player and player.has_signal("silver_key_changed"):
 		player.silver_key_changed.connect(_on_silver_key_changed)
 
+func _input(event: InputEvent) -> void:
+	"""处理UI快捷键输入"""
+	if event is InputEventKey and event.pressed:
+		# ESC键：打开暂停菜单（优先级：技能取消 > 打开暂停菜单）
+		if event.keycode == KEY_ESCAPE:
+			# 检查玩家是否正在选择技能
+			var is_selecting_skill = false
+			if player and player.has_node("StateManager"):
+				var state_manager = player.get_node("StateManager")
+				if state_manager and state_manager.has_method("is_selecting_skill"):
+					is_selecting_skill = state_manager.is_selecting_skill()
+			
+			# 如果没有选择技能且暂停菜单未打开，则打开暂停菜单
+			if not is_selecting_skill and not is_user_paused:
+				_on_pause_button_pressed()
+				get_viewport().set_input_as_handled()  # 标记事件已处理
+		
+		# B键：打开/关闭技能调配菜单（暂停时不响应）
+		elif event.keycode == KEY_B:
+			if not is_user_paused:  # 只在非暂停状态时才响应
+				_on_skill_swap_button_pressed()
+				get_viewport().set_input_as_handled()  # 标记事件已处理
+
 func setup_dungeon_reference() -> void:
 	# 等待一帧确保场景树准备好
 	await get_tree().process_frame
@@ -811,7 +834,7 @@ func create_skill_swap_content() -> void:
 	
 	# 右侧：备选技能库
 	var available_container = VBoxContainer.new()
-	available_container.custom_minimum_size = Vector2(250, 0)
+	available_container.custom_minimum_size = Vector2(290, 0)  # 增加宽度以容纳两列
 	var available_title = Label.new()
 	available_title.text = "📚 备选技能库"
 	available_title.add_theme_font_size_override("font_size", 18)
@@ -819,7 +842,7 @@ func create_skill_swap_content() -> void:
 	
 	# 创建滚动容器
 	skill_scroll_container = ScrollContainer.new()
-	skill_scroll_container.custom_minimum_size = Vector2(250, 280)  # 限制高度，启用滚动
+	skill_scroll_container.custom_minimum_size = Vector2(280, 280)  # 增加宽度以容纳两列
 	skill_scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	skill_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	
@@ -827,8 +850,11 @@ func create_skill_swap_content() -> void:
 	skill_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED  # 禁用横向滚动
 	skill_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO  # 自动垂直滚动
 	
-	# 创建技能列表容器
-	var skills_list = VBoxContainer.new()
+	# 创建技能列表容器（使用GridContainer实现两列布局）
+	var skills_list = GridContainer.new()
+	skills_list.columns = 2  # 设置为2列
+	skills_list.add_theme_constant_override("h_separation", 5)  # 水平间距
+	skills_list.add_theme_constant_override("v_separation", 5)  # 垂直间距
 	skills_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
 	# 创建备选技能按钮
@@ -889,8 +915,11 @@ func create_skill_slot_button(slot_index: int, _is_active: bool) -> Control:
 func create_available_skill_button(skill_id: String) -> Button:
 	var skill_info = skill_manager.get_skill_info_by_id(skill_id)
 	var button = Button.new()
-	button.custom_minimum_size = Vector2(220, 60)  # 设置固定尺寸适应滚动
+	button.custom_minimum_size = Vector2(130, 55)  # 减小尺寸适应两列布局
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# 设置较小的字体
+	button.add_theme_font_size_override("font_size", 10)
 	
 	# 构建技能描述文本
 	var skill_text = skill_info.name
@@ -899,18 +928,18 @@ func create_available_skill_button(skill_id: String) -> Button:
 	var skill_type = skill_info.get("type", "")
 	match skill_type:
 		"auto":
-			skill_text += "\n🔮 自动释放"
+			skill_text += "\n🔮 自动"
 		"heal":
-			skill_text += "\n💚 治疗:" + str(skill_info.get("heal_amount", 0))
+			skill_text += "\n💚 " + str(skill_info.get("heal_amount", 0))
 		"aoe":
-			skill_text += "\n💥 范围:" + str(skill_info.get("damage", 0))
+			skill_text += "\n💥 " + str(skill_info.get("damage", 0))
 		"targeted":
-			skill_text += "\n🎯 精准:" + str(skill_info.get("damage", 0))
+			skill_text += "\n🎯 " + str(skill_info.get("damage", 0))
 		_:
-			skill_text += "\n⚔️ 伤害:" + str(skill_info.get("damage", 0))
+			skill_text += "\n⚔️ " + str(skill_info.get("damage", 0))
 	
-	skill_text += " 魔法:" + str(skill_info.mana_cost) + "MP"
-	skill_text += " 冷却:" + str(skill_info.cooldown) + "s"
+	skill_text += " " + str(skill_info.mana_cost) + "MP"
+	skill_text += " " + str(skill_info.cooldown) + "s"
 	
 	button.text = skill_text
 	button.modulate = skill_info.color
@@ -1173,8 +1202,8 @@ func create_pause_content() -> void:
 	
 	# 创建操作说明文本
 	var instruction_text = Label.new()
-	instruction_text.text = "WASD移动探索地牢\n1234选择技能+左键释放\n右键普攻攻击敌人\nESC取消技能选择"
-	instruction_text.add_theme_font_size_override("font_size", 14)
+	instruction_text.text = "WASD移动  右键普攻  1234选择技能\n左键释放技能  ESC暂停/取消  B键技能调配"
+	instruction_text.add_theme_font_size_override("font_size", 13)
 	instruction_text.add_theme_color_override("font_color", Color.WHITE)
 	instruction_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	instruction_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

@@ -8,7 +8,7 @@ extends SkillBase
 @export var stun_duration: float = 3.0  # 眩晕持续时间
 @export var tornado_speed: float = 300.0  # 龙卷风速度
 @export var tornado_distance: float = 600.0  # 龙卷风飞行距离
-@export var tornado_width: float = 50.0  # 龙卷风宽度（垂直于发射方向）
+@export var tornado_width: float = 60.0  # 龙卷风宽度（垂直于发射方向）
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
