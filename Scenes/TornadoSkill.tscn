@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://bs2kqxm5yh5s6"]
+
+[ext_resource type="Script" uid="uid://uhv8vdyiwewf" path="res://scripts/SkillEffect.gd" id="1_tornado"]
+[ext_resource type="Texture2D" uid="uid://d2rymi0w3ma8w" path="res://art/tornado.png" id="2_tornado"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tornado"]
+size = Vector2(60, 60)
+
+[node name="TornadoEffect" type="Area2D"]
+collision_layer = 8
+collision_mask = 7
+script = ExtResource("1_tornado")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_tornado")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.7, 0.9, 1, 0.6)
+texture = ExtResource("2_tornado")
+
+[connection signal="area_entered" from="." to="." method="_on_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+

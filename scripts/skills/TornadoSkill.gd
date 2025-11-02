@@ -8,7 +8,7 @@ extends SkillBase
 @export var stun_duration: float = 3.0  # 眩晕持续时间
 @export var tornado_speed: float = 300.0  # 龙卷风速度
 @export var tornado_distance: float = 600.0  # 龙卷风飞行距离
-@export var tornado_width: float = 120.0  # 龙卷风宽度（垂直于发射方向）
+@export var tornado_width: float = 50.0  # 龙卷风宽度（垂直于发射方向）
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
@@ -22,6 +22,23 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	skill_color = Color(0.7, 0.9, 1.0, 0.6)  # 淡蓝色半透明
 	description = "发射龙卷风，眩晕敌人3秒"
 	cast_type = SkillCastType.TARGET_GROUND
+
+func create_skill_effect(effect_type: String, position: Vector2) -> Node:
+	"""重写父类方法，使用自定义的TornadoSkill场景"""
+	var effect = preload("res://Scenes/TornadoSkill.tscn").instantiate()
+	effect.global_position = position
+	effect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	effect.skill_type = effect_type
+	effect.source = player  # 设置技能来源为玩家
+	
+	# 添加到场景但延迟初始化
+	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")
+	if skill_effects:
+		skill_effects.add_child(effect)
+	else:
+		player.get_tree().current_scene.add_child(effect)
+	
+	return effect
 
 func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	"""执行强袭飓风效果"""
@@ -38,8 +55,8 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	tornado.damage = skill_damage
 	tornado.max_distance = tornado_distance
 	tornado.skill_width = tornado_width  # 设置技能宽度
+	tornado.skill_length = tornado_width  # 设置技能长度与宽度一致（正方形）
 	tornado.life_time = 5.0
-	tornado.modulate = skill_color
 	
 	# 设置命中时的眩晕buff
 	tornado.on_hit_buff_type = BuffSystem.BuffType.STUN

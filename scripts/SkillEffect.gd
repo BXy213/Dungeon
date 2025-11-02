@@ -9,6 +9,7 @@ var skill_type: String = "projectile"
 var traveled_distance: float = 0.0
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
 var skill_width: float = 0.0  # 技能宽度（用于定向技能如龙卷风、声波）
+var skill_length: float = 0.0  # 技能长度（用于定向技能，0表示使用默认值）
 var source: Node = null  # 技能来源（玩家或敌人）
 
 # Buff相关属性（命中时对目标施加buff）
@@ -67,16 +68,24 @@ func is_projectile_type() -> bool:
 
 func setup_projectile_skill() -> void:
 	"""设置弹道技能（包括普通弹道、龙卷风、声波等）"""
-	# 如果有技能宽度，调整贴图缩放
-	if sprite and skill_width > 0:
-		# 调整精灵的Y轴缩放以匹配技能宽度
-		# 假设原始贴图高度是32像素
-		var original_height = 32.0
-		var scale_y = skill_width / original_height
-		var scale_x = sprite.scale.x  # 保持X轴的原始缩放
+	# 如果有技能宽度或长度，调整贴图缩放
+	if sprite and (skill_width > 0 or skill_length > 0):
+		# 假设原始贴图大小是32x32像素
+		var original_size = 32.0
+		var scale_x = sprite.scale.x  # 默认保持X轴的原始缩放
+		var scale_y = sprite.scale.y  # 默认保持Y轴的原始缩放
+		
+		# 如果设置了skill_length，调整X轴缩放
+		if skill_length > 0:
+			scale_x = skill_length / original_size
+		
+		# 如果设置了skill_width，调整Y轴缩放
+		if skill_width > 0:
+			scale_y = skill_width / original_size
+		
 		sprite.scale = Vector2(scale_x, scale_y)
 		
-		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (宽度: ", skill_width, ")")
+		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (长度: ", skill_length if skill_length > 0 else "默认", ", 宽度: ", skill_width if skill_width > 0 else "默认", ")")
 
 func setup_directional_collision() -> void:
 	"""设置定向碰撞盒（矩形，朝向发射方向）"""
@@ -85,8 +94,8 @@ func setup_directional_collision() -> void:
 	
 	# 创建矩形碰撞盒
 	var rect_shape = RectangleShape2D.new()
-	# 长度固定为30像素，宽度由skill_width决定
-	var collision_length = 30.0
+	# 如果设置了skill_length则使用，否则使用默认值30像素
+	var collision_length = skill_length if skill_length > 0 else 30.0
 	rect_shape.size = Vector2(collision_length, skill_width)
 	collision_shape.shape = rect_shape
 	

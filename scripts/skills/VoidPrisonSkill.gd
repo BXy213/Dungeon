@@ -6,7 +6,7 @@ extends SkillBase
 # 可配置参数
 @export var damage_multiplier: float = 1.5  # 伤害倍率（基于玩家攻击力）
 @export var prison_radius: float = 150.0  # 牢笼范围
-@export var stun_duration: float = 2.5  # 眩晕持续时间
+@export var stun_duration: float = 3.5  # 眩晕持续时间
 @export var delay: float = 0.5  # 延迟触发时间（给敌人反应时间）
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):

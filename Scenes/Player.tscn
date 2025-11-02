@@ -21,7 +21,7 @@ shape = SubResource("RectangleShape2D_cxr5p")
 
 [node name="SkillManager" type="Node" parent="."]
 script = ExtResource("1_xhfnw")
-initial_skills = Array[String](["fireball", "sonic_wave", "heal", "mana_restore"])
+initial_skills = Array[String](["tornado", "shockwave", "heal", "mana_restore"])
 
 [node name="Camera2D" type="Camera2D" parent="."]
 limit_left = -100
