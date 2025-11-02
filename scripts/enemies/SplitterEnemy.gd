@@ -34,7 +34,7 @@ func _init():
 		# 小型分裂体
 		character_name = "小分裂体"
 		max_health = 30
-		base_speed = 110.0
+		base_speed = 100.0
 		base_attack_damage = 8
 		attack_range = 120.0
 		attack_cooldown = 1.2
@@ -43,7 +43,7 @@ func _init():
 		# 普通分裂体
 		character_name = "分裂体"
 		max_health = 100
-		base_speed = 85.0
+		base_speed = 50.0
 		base_attack_damage = 18
 		attack_range = 150.0
 		attack_cooldown = 2.0
@@ -296,8 +296,8 @@ func execute_attack_behavior() -> void:
 func execute_chase_behavior() -> void:
 	"""执行追击行为"""
 	if current_target:
-		var direction = (current_target.global_position - global_position).normalized()
-		velocity = direction * current_speed
+		# 使用智能寻路
+		navigate_to_target(current_target.global_position)
 		move_and_slide()
 
 func set_projectile_appearance(projectile: Node) -> void:

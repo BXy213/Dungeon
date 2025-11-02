@@ -19,7 +19,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "flame_storm"
 	skill_name = "烈焰风暴"
-	cooldown = 15.0
+	cooldown = 12.0
 	mana_cost = 70
 	max_range = 600.0
 	skill_radius = storm_radius

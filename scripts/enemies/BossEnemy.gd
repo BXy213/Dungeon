@@ -31,7 +31,7 @@ func _init():
 	
 	# 设置BOSS属性
 	character_name = "BOSS"
-	max_health = 400
+	max_health = 500
 	health = max_health
 	base_speed = 50.0  # 移动较慢
 	base_attack_damage = 25
@@ -158,6 +158,9 @@ func _physics_process(delta: float) -> void:
 		elif distance_to_target > max_distance:
 			# 太远 - 慢慢接近
 			approach_target_slowly()
+		
+		# 应用移动
+		move_and_slide()
 
 ## ========== 移动方法 ==========
 
@@ -276,37 +279,54 @@ func summon_minions() -> void:
 	
 	print("👑 开始召唤小兵，当前房间: ", current_room.room_id)
 	
-	# 召唤近战小兵
-	var melee_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var melee_soldier = current_room.create_enemy_by_type("melee_soldier")
+	# 召唤1个精英战士
+	var elite_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
+	var elite_soldier = current_room.create_enemy_by_type("elite_soldier")
 	
-	if melee_soldier:
-		melee_soldier.position = melee_spawn_pos
-		current_room.enemies_container.add_child(melee_soldier)
+	if elite_soldier:
+		elite_soldier.position = elite_spawn_pos
+		current_room.enemies_container.add_child(elite_soldier)
 		await get_tree().process_frame
 		
-		current_room.enemies.append(melee_soldier)
-		melee_soldier.character_died.connect(current_room._on_enemy_character_died)
+		current_room.enemies.append(elite_soldier)
+		elite_soldier.character_died.connect(current_room._on_enemy_character_died)
 		current_room.alive_enemy_count += 1
 		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
 		
-		print("    ✅ 召唤近战小兵完成")
+		print("    ✅ 召唤精英战士完成")
 	
-	# 召唤远程小兵
-	var ranged_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var ranged_soldier = current_room.create_enemy_by_type("ranged_soldier")
+	# 召唤2个远程小兵
+	for i in range(2):
+		var ranged_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
+		var ranged_soldier = current_room.create_enemy_by_type("ranged_soldier")
+		
+		if ranged_soldier:
+			ranged_soldier.position = ranged_spawn_pos
+			current_room.enemies_container.add_child(ranged_soldier)
+			await get_tree().process_frame
+			
+			current_room.enemies.append(ranged_soldier)
+			ranged_soldier.character_died.connect(current_room._on_enemy_character_died)
+			current_room.alive_enemy_count += 1
+			current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
+			
+			print("    ✅ 召唤远程小兵 #", i + 1, " 完成")
 	
-	if ranged_soldier:
-		ranged_soldier.position = ranged_spawn_pos
-		current_room.enemies_container.add_child(ranged_soldier)
+	# 召唤1个分裂者
+	var splitter_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
+	var splitter = current_room.create_enemy_by_type("splitter")
+	
+	if splitter:
+		splitter.position = splitter_spawn_pos
+		current_room.enemies_container.add_child(splitter)
 		await get_tree().process_frame
 		
-		current_room.enemies.append(ranged_soldier)
-		ranged_soldier.character_died.connect(current_room._on_enemy_character_died)
+		current_room.enemies.append(splitter)
+		splitter.character_died.connect(current_room._on_enemy_character_died)
 		current_room.alive_enemy_count += 1
 		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
 		
-		print("    ✅ 召唤远程小兵完成")
+		print("    ✅ 召唤分裂者完成")
 	
 	print("👑 召唤完成！当前房间敌人数: ", current_room.alive_enemy_count)
 

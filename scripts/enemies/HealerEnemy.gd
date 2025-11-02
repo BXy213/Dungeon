@@ -8,7 +8,7 @@ class_name HealerEnemy
 # 治疗相关
 var heal_range: float = 300.0  # 治疗范围
 var heal_amount: int = 30  # 治疗量
-var heal_cooldown: float = 5.0  # 治疗冷却
+var heal_cooldown: float = 4.0  # 治疗冷却
 var heal_timer: Timer = null
 var can_heal: bool = true
 

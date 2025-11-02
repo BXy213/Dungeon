@@ -14,8 +14,8 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "swift_strike"
 	skill_name = "灵动迅捷"
-	cooldown = 15.0
-	mana_cost = 40
+	cooldown = 10.0
+	mana_cost = 35
 	max_range = 0.0  # 自动释放
 	skill_color = Color(1.0, 0.8, 0.2)  # 金黄色
 	description = "获得5秒加速和攻击强化"

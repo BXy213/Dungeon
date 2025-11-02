@@ -4,11 +4,11 @@ extends SkillBase
 # 🌪️ 强袭飓风 - 眩晕龙卷风
 
 # 可配置参数
-@export var damage_multiplier: float = 0.8  # 伤害倍率（基于玩家攻击力）
+@export var damage_multiplier: float = 0.6  # 伤害倍率（基于玩家攻击力）
 @export var stun_duration: float = 3.0  # 眩晕持续时间
 @export var tornado_speed: float = 300.0  # 龙卷风速度
 @export var tornado_distance: float = 600.0  # 龙卷风飞行距离
-@export var tornado_width: float = 150.0  # 龙卷风宽度（垂直于发射方向）
+@export var tornado_width: float = 120.0  # 龙卷风宽度（垂直于发射方向）
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
@@ -16,11 +16,11 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "tornado"
 	skill_name = "强袭飓风"
-	cooldown = 12.0
+	cooldown = 8.0
 	mana_cost = 50
 	max_range = 0.0  # 无射程限制
 	skill_color = Color(0.7, 0.9, 1.0, 0.6)  # 淡蓝色半透明
-	description = "发射龙卷风，眩晕第一个敌人3秒"
+	description = "发射龙卷风，眩晕敌人3秒"
 	cast_type = SkillCastType.TARGET_GROUND
 
 func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:

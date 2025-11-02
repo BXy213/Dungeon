@@ -5,7 +5,7 @@ extends SkillBase
 
 # 可配置参数
 @export var damage_multiplier: float = 1.2  # 伤害倍率（基于玩家攻击力）
-@export var slow_strength: float = 0.5  # 减速强度（50%）
+@export var slow_strength: float = 0.7  # 减速强度（50%）
 @export var slow_duration: float = 3.0  # 减速持续时间
 @export var projectile_width: float = 0.0  # 弹道宽度（0表示使用默认圆形碰撞盒）
 
@@ -16,7 +16,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	skill_id = "ice_spike"
 	skill_name = "冰锥术"
 	cooldown = 3.0
-	mana_cost = 20
+	mana_cost = 15
 	max_range = 0.0  # 无射程限制
 	skill_color = Color.CYAN
 	description = "发射冰锥，造成伤害并减速敌人3秒"

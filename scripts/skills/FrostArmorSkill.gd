@@ -4,7 +4,7 @@ extends SkillBase
 # ❄️ 寒冰护甲 - 自我buff，受击时减速攻击者（参考魔兽争霸/DOTA寒冰护甲）
 
 # 可配置参数
-@export var armor_duration: float = 10.0  # 护甲持续时间
+@export var armor_duration: float = 8.0  # 护甲持续时间
 @export var damage_reduction: float = 0.5  # 伤害减免（50%）
 @export var slow_duration: float = 2.0  # 攻击者减速持续时间
 @export var slow_strength: float = 0.4  # 攻击者减速强度（40%）
@@ -15,7 +15,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "frost_armor"
 	skill_name = "寒冰护甲"
-	cooldown = 15.0
+	cooldown = 12.0
 	mana_cost = 40
 	max_range = 0.0  # 自我施放
 	skill_color = Color(0.5, 0.8, 1.0)  # 冰蓝色

@@ -34,10 +34,10 @@ func _init():
 	is_controllable = true
 	
 	# 玩家属性
-	max_health = 300
-	health = 300
-	max_mana = 200
-	mana = 200
+	max_health = 150
+	health = max_health
+	max_mana = 100
+	mana = max_mana
 	base_speed = 200.0
 	base_attack_damage = 25
 	attack_range = 400.0
@@ -247,7 +247,7 @@ func level_up() -> void:
 
 func get_required_experience_for_level(target_level: int) -> int:
 	"""获取升级所需经验值"""
-	return target_level * target_level * 100  # 简单的经验公式
+	return target_level * 200  # 简单的经验公式
 
 ## ========== 银钥匙管理 ==========
 

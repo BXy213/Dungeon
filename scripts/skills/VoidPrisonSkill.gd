@@ -7,7 +7,7 @@ extends SkillBase
 @export var damage_multiplier: float = 1.5  # 伤害倍率（基于玩家攻击力）
 @export var prison_radius: float = 150.0  # 牢笼范围
 @export var stun_duration: float = 2.5  # 眩晕持续时间
-@export var delay: float = 0.8  # 延迟触发时间（给敌人反应时间）
+@export var delay: float = 0.5  # 延迟触发时间（给敌人反应时间）
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
@@ -15,8 +15,8 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "void_prison"
 	skill_name = "虚空牢笼"
-	cooldown = 18.0
-	mana_cost = 70
+	cooldown = 10.0
+	mana_cost = 60
 	max_range = 600.0
 	skill_radius = prison_radius
 	skill_color = Color(0.5, 0.0, 0.8)  # 深紫色

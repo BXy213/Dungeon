@@ -17,6 +17,12 @@ extends CharacterBase
 var health_bar: Control = null
 var health_fill: ColorRect = null
 
+# 智能寻路配置
+var use_smart_pathfinding: bool = true  # 是否使用射线检测避障
+var avoidance_direction: Vector2 = Vector2.ZERO  # 当前避障方向
+var avoidance_timer: float = 0.0  # 避障方向保持时间
+var last_direction: Vector2 = Vector2.ZERO  # 上一帧的移动方向
+
 ## ========== 敌人信号 ==========
 
 signal enemy_defeated(enemy: EnemyCharacter, exp_reward: int)
@@ -73,6 +79,102 @@ func execute_attack_behavior() -> void:
 func execute_chase_behavior() -> void:
 	"""执行追击行为（子类实现）"""
 	print("⚠️ execute_chase_behavior() 应该由子类实现")
+
+## ========== 智能寻路系统（射线检测避障） ==========
+
+func navigate_to_target(target_pos: Vector2) -> void:
+	"""智能移动到目标位置（使用射线检测避障，带平滑移动）"""
+	# 计算到目标的方向
+	var to_target = target_pos - global_position
+	var distance_to_target = to_target.length()
+	var direction = to_target.normalized()
+	
+	# 减少避障计时器
+	if avoidance_timer > 0:
+		avoidance_timer -= get_physics_process_delta_time()
+	
+	# 只在需要时重新计算避障方向（避免频繁切换）
+	if avoidance_timer <= 0:
+		# 使用射线检测检查是否有障碍物（提前检测，距离更远）
+		var detection_distance = min(distance_to_target, 150.0)  # 最多检测150像素
+		var detection_target = global_position + direction * detection_distance
+		
+		var space_state = get_world_2d().direct_space_state
+		var query = PhysicsRayQueryParameters2D.create(global_position, detection_target)
+		query.collision_mask = 1  # 只检测障碍物层
+		query.exclude = [self]
+		
+		var result = space_state.intersect_ray(query)
+		
+		if result:
+			# 检测到障碍物，计算新的避障方向
+			var obstacle_pos = result.position
+			var to_obstacle = obstacle_pos - global_position
+			
+			# 只有在障碍物比较近时才避障（距离小于80像素）
+			if to_obstacle.length() < 80.0:
+				# 计算绕路方向（左右两侧）
+				var perpendicular_left = Vector2(-direction.y, direction.x)
+				var perpendicular_right = Vector2(direction.y, -direction.x)
+				
+				# 检测左右两侧哪边更通畅
+				var left_ray = PhysicsRayQueryParameters2D.create(
+					global_position, 
+					global_position + perpendicular_left * 80
+				)
+				left_ray.collision_mask = 1
+				left_ray.exclude = [self]
+				
+				var right_ray = PhysicsRayQueryParameters2D.create(
+					global_position, 
+					global_position + perpendicular_right * 80
+				)
+				right_ray.collision_mask = 1
+				right_ray.exclude = [self]
+				
+				var left_result = space_state.intersect_ray(left_ray)
+				var right_result = space_state.intersect_ray(right_ray)
+				
+				# 选择更通畅的一侧
+				if not left_result and not right_result:
+					# 两侧都通畅，选择更靠近目标的一侧
+					var left_to_target = (target_pos - (global_position + perpendicular_left * 40)).length()
+					var right_to_target = (target_pos - (global_position + perpendicular_right * 40)).length()
+					avoidance_direction = perpendicular_left if left_to_target < right_to_target else perpendicular_right
+				elif not left_result:
+					avoidance_direction = perpendicular_left
+				elif not right_result:
+					avoidance_direction = perpendicular_right
+				else:
+					# 两侧都有障碍，向远离障碍的方向移动
+					avoidance_direction = (global_position - obstacle_pos).normalized()
+				
+				# 设置避障计时器，在一段时间内保持这个方向（减少抖动）
+				avoidance_timer = 0.3  # 保持0.3秒
+			else:
+				# 障碍物还比较远，不需要避障
+				avoidance_direction = Vector2.ZERO
+				avoidance_timer = 0.1
+		else:
+			# 没有障碍物，重置避障方向
+			avoidance_direction = Vector2.ZERO
+			avoidance_timer = 0.1
+	
+	# 计算最终方向
+	var final_direction = direction
+	if avoidance_direction != Vector2.ZERO:
+		# 混合避障方向和目标方向
+		final_direction = (avoidance_direction * 0.6 + direction * 0.4).normalized()
+	
+	# 与上一帧方向插值，使移动更平滑
+	if last_direction != Vector2.ZERO:
+		final_direction = last_direction.lerp(final_direction, 0.3)  # 30%的插值，使转向更平滑
+	
+	# 记录当前方向
+	last_direction = final_direction.normalized()
+	
+	# 设置速度
+	velocity = final_direction * current_speed
 
 ## ========== 敌人通用移动系统 ==========
 

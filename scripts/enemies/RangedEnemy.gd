@@ -6,9 +6,9 @@ class_name RangedEnemy
 ## ========== 远程小兵特有属性 ==========
 
 # 距离管理属性
-var preferred_distance: float = 120.0  # 偏好的攻击距离
-var min_distance: float = 80.0  # 最小保持距离
-var max_distance: float = 180.0  # 最大攻击距离
+var preferred_distance: float = 250.0  # 偏好的攻击距离
+var min_distance: float =100.0  # 最小保持距离
+var max_distance: float = 350.0  # 最大攻击距离
 
 # 游走移动属性
 var strafe_timer: float = 0.0
@@ -17,7 +17,7 @@ var strafe_direction: Vector2 = Vector2.ZERO
 # AI行为属性
 var current_target: Node = null
 var detection_range: float = 500.0
-var lose_target_distance: float = 400.0
+var lose_target_distance: float = 600.0
 
 ## ========== 初始化方法 ==========
 
@@ -28,7 +28,7 @@ func _init():
 	character_name = "远程小兵"
 	max_health = 80
 	health = max_health
-	base_speed = 70.0
+	base_speed = 30.0
 	base_attack_damage = 10
 	attack_range = 500.0
 	attack_cooldown = 1.5
@@ -150,6 +150,9 @@ func _physics_process(delta: float) -> void:
 		elif distance_to_target > max_distance:
 			# 太远 - 接近
 			perform_approach_movement()
+		
+		# 应用移动
+		move_and_slide()
 
 ## ========== 移动方法 ==========
 

@@ -14,7 +14,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "split_shot"
 	skill_name = "分裂箭"
-	cooldown = 8.0
+	cooldown = 7.0
 	mana_cost = 50
 	max_range = 0.0  # 无射程限制（自动选择目标）
 	skill_color = Color(0.9, 0.7, 0.2)  # 金色

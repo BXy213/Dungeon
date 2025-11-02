@@ -148,8 +148,8 @@ func generate_obstacles() -> void:
 		
 		# 计算障碍物的世界坐标（格子中心）
 		var world_pos = Vector2(
-			margin + grid_pos.x * grid_size + grid_size / 2,
-			margin + grid_pos.y * grid_size + grid_size / 2
+			margin + grid_pos.x * grid_size + grid_size / 2.0,
+			margin + grid_pos.y * grid_size + grid_size / 2.0
 		)
 		
 		# 目前统一生成rock类型（保留类型系统以便将来扩展）

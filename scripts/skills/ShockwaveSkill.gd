@@ -7,7 +7,7 @@ extends SkillBase
 @export var damage_multiplier: float = 2.0  # 伤害倍率（基于玩家攻击力）
 @export var wave_speed: float = 400.0  # 波动速度
 @export var wave_distance: float = 800.0  # 波动距离
-@export var wave_width: float = 120.0  # 波动宽度
+@export var wave_width: float = 80.0  # 波动宽度
 
 func _init(p_player: Node = null, p_skill_manager: Node = null):
 	super._init(p_player, p_skill_manager)
@@ -15,7 +15,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "shockwave"
 	skill_name = "震荡波"
-	cooldown = 10.0
+	cooldown = 8.0
 	mana_cost = 60
 	max_range = 0.0  # 无射程限制
 	skill_color = Color(0.3, 0.9, 0.9)  # 青色

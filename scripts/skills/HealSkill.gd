@@ -13,7 +13,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "heal"
 	skill_name = "治疗术"
-	cooldown = 10.0
+	cooldown = 15.0
 	mana_cost = 30
 	max_range = 0.0  # 自动释放，无需选择目标
 	skill_color = Color.GREEN

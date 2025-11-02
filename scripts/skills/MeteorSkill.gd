@@ -12,7 +12,7 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "meteor"
 	skill_name = "陨石术"
-	cooldown = 6.0
+	cooldown = 8.0
 	mana_cost = 40
 	max_range = 400.0  # 400像素射程限制
 	skill_radius = 150.0  # 150像素AOE范围

@@ -12,8 +12,8 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "blink"
 	skill_name = "闪现"
-	cooldown = 15.0  # 较长CD
-	mana_cost = 40
+	cooldown = 10.0  # 较长CD
+	mana_cost = 30
 	max_range = blink_distance
 	skill_color = Color(0.8, 0.3, 1.0)  # 紫色
 	description = "瞬移到目标位置，最大距离300像素"

@@ -6,13 +6,13 @@ class_name BomberEnemy
 ## ========== 自爆兵特有属性 ==========
 
 # 爆炸相关
-var explosion_radius: float = 200.0  # 爆炸范围
+var explosion_radius: float = 100.0  # 爆炸范围
 var explosion_damage_multiplier: float = 2.0  # 爆炸伤害倍率（基于攻击力）
 var chase_speed_boost: float = 1.3  # 追击时速度提升
 
 # AI相关
 var current_target: Node = null
-var detection_range: float = 500.0
+var detection_range: float = 400.0
 var detonate_range: float = 80.0  # 引爆距离
 
 ## ========== 静态创建方法 ==========
@@ -33,7 +33,7 @@ func _init():
 	character_name = "自爆兵"
 	max_health = 60  # 血量较低
 	health = max_health  # ✅ 修复：初始血量应等于最大血量
-	base_speed = 60.0  # 移速较快
+	base_speed = 55.0
 	base_attack_damage = 15  # 爆炸伤害会更高
 	attack_range = 80.0  # 近身引爆
 	attack_cooldown = 999.0  # 不使用普通攻击
@@ -237,8 +237,9 @@ func execute_attack_behavior() -> void:
 func execute_chase_behavior() -> void:
 	"""快速冲向目标"""
 	if current_target:
-		var direction = (current_target.global_position - global_position).normalized()
-		velocity = direction * current_speed * chase_speed_boost
+		# 使用智能寻路（带速度加成）
+		navigate_to_target(current_target.global_position)
+		velocity = velocity * chase_speed_boost  # 应用追击速度加成
 		move_and_slide()
 
 ## ========== 辅助方法 ==========

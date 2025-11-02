@@ -12,8 +12,8 @@ func _init(p_player: Node = null, p_skill_manager: Node = null):
 	# 设置技能属性
 	skill_id = "snipe"
 	skill_name = "精准射击"
-	cooldown = 3.5
-	mana_cost = 25
+	cooldown = 5
+	mana_cost = 30
 	max_range = 500.0
 	skill_color = Color.PURPLE
 	description = "精准射击敌人"

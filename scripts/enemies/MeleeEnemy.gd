@@ -8,7 +8,7 @@ class_name MeleeEnemy
 # AI行为属性
 var current_target: Node = null
 var detection_range: float = 400.0
-var lose_target_distance: float = 300.0
+var lose_target_distance: float = 400.0
 
 ## ========== 初始化方法 ==========
 
@@ -19,7 +19,7 @@ func _init():
 	character_name = "近战小兵"
 	max_health = 100
 	health = max_health
-	base_speed = 70.0
+	base_speed = 55.0
 	base_attack_damage = 12
 	attack_range = 150.0
 	attack_cooldown = 1.8
@@ -126,9 +126,11 @@ func _physics_process(delta: float) -> void:
 				# 攻击后稍微后退
 				var retreat_direction = (global_position - current_target.global_position).normalized()
 				move_towards(global_position + retreat_direction * 20, 0.5)
+				move_and_slide()
 		else:
-			# 不在攻击范围内 - 追击
-			move_towards(current_target.global_position, 1.0)
+			# 不在攻击范围内 - 使用智能寻路追击
+			navigate_to_target(current_target.global_position)
+			move_and_slide()
 
 ## ========== 攻击方法 ==========
 

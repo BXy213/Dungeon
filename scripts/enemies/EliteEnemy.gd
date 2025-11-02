@@ -152,8 +152,10 @@ func perform_predictive_chase() -> void:
 	# 预测目标0.3秒后的位置
 	var predicted_position = current_target.global_position + target_velocity * 0.3
 	
-	# 以更快的速度冲向预测位置
-	move_towards(predicted_position, 1.1)
+	# 使用智能寻路追击预测位置（带速度加成）
+	navigate_to_target(predicted_position)
+	velocity = velocity * 1.1  # 应用速度加成
+	move_and_slide()
 
 ## ========== 攻击方法 ==========
 
