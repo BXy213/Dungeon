@@ -67,6 +67,7 @@ func setup_state_manager() -> void:
 	"""设置玩家状态管理器"""
 	# 直接使用preload，在编译时检查，导出后也能正常工作
 	state_manager = PlayerStateManager.new(self)
+	state_manager.name = "StateManager"
 	add_child(state_manager)
 	print("✅ PlayerStateManager初始化完成")
 

@@ -281,7 +281,7 @@ func summon_minions() -> void:
 	
 	# 召唤1个精英战士
 	var elite_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var elite_soldier = current_room.create_enemy_by_type("elite_soldier")
+	var elite_soldier = current_room.create_enemy_by_type("elite_melee")
 	
 	if elite_soldier:
 		elite_soldier.position = elite_spawn_pos

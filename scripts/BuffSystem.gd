@@ -218,12 +218,18 @@ func _apply_buff_effect(buff: BuffInstance) -> void:
 		BuffType.STUN:
 			# 眩晕效果
 			if owner_character:
-				owner_character.is_stunned = true
+				if owner_character.has_method("set_stunned"):
+					owner_character.set_stunned(true)
+				else:
+					owner_character.is_stunned = true
 		
 		BuffType.SILENCE:
 			# 沉默效果
 			if owner_character:
-				owner_character.is_silenced = true
+				if owner_character.has_method("set_silenced"):
+					owner_character.set_silenced(true)
+				else:
+					owner_character.is_silenced = true
 		
 		BuffType.STRENGTHEN:
 			# 攻击强化 - 直接修改攻击力
@@ -267,12 +273,18 @@ func _remove_buff_effect(buff: BuffInstance) -> void:
 		BuffType.STUN:
 			# 取消眩晕
 			if owner_character:
-				owner_character.is_stunned = false
+				if owner_character.has_method("set_stunned"):
+					owner_character.set_stunned(false)
+				else:
+					owner_character.is_stunned = false
 		
 		BuffType.SILENCE:
 			# 取消沉默
 			if owner_character:
-				owner_character.is_silenced = false
+				if owner_character.has_method("set_silenced"):
+					owner_character.set_silenced(false)
+				else:
+					owner_character.is_silenced = false
 		
 		BuffType.STRENGTHEN:
 			# 恢复攻击力

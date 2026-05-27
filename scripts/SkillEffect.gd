@@ -291,7 +291,11 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 	if not is_inside_tree():
 		return
 	
-	var impact = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var impact_scene = load("res://Scenes/SkillEffect.tscn") as PackedScene
+	if not impact_scene:
+		return
+	
+	var impact = impact_scene.instantiate()
 	impact.global_position = global_position
 	impact.skill_type = "instant"
 	impact.life_time = 0.3
