@@ -191,7 +191,7 @@ func take_damage(amount: int, source: Node = null) -> void:
 				var source_buff_system = source.get_node_or_null("BuffSystem")
 				if source_buff_system and source_buff_system.has_method("apply_buff"):
 					source_buff_system.apply_buff(BuffSystem.BuffType.SLOW, 2.0, frost_armor_slow_strength, self)
-					var source_name = source.character_name if "character_name" in source else source.name
+					var source_name = str(source.character_name) if "character_name" in source else str(source.name)
 					print("  ❄️ 寒冰护甲反击: ", source_name, " 被减速 ", int(frost_armor_slow_strength * 100), "%")
 				else:
 					print("  ⚠️ 攻击者没有有效的BuffSystem: ", source.name)
@@ -550,7 +550,7 @@ func get_direction_to(target: Node2D) -> Vector2:
 
 func get_health_percentage() -> float:
 	"""获取生命值百分比"""
-	return float(health) / float(max_health)
+	return float(health) / float(max_health) if max_health > 0 else 0.0
 
 func get_debug_info() -> Dictionary:
 	"""获取调试信息（基础实现）"""

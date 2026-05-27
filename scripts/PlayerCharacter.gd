@@ -1,4 +1,6 @@
-extends "res://scripts/CharacterBase.gd"
+﻿extends "res://scripts/CharacterBase.gd"
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🎮 玩家角色类 - 基于新架构的玩家实现
 
@@ -49,17 +51,17 @@ func post_ready_setup() -> void:
 	super.post_ready_setup()
 	
 	# 设置技能管理器
-	skill_manager = get_node_or_null("SkillManager")
+	skill_manager = get_node_or_null(Constants.NODE_SKILL_MANAGER)
 	
 	# 初始化状态管理器
 	setup_state_manager()
 	
 	# 获取技能指示器引用
-	skill_indicator = get_tree().current_scene.get_node_or_null("SkillIndicator")
+	skill_indicator = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_INDICATOR)
 	
 	# 将玩家加入角色组
-	add_to_group("characters")
-	add_to_group("players")
+	add_to_group(Constants.GROUP_CHARACTERS)
+	add_to_group(Constants.GROUP_PLAYERS)
 	
 	print("🎮 玩家角色初始化完成")
 
@@ -67,7 +69,7 @@ func setup_state_manager() -> void:
 	"""设置玩家状态管理器"""
 	# 直接使用preload，在编译时检查，导出后也能正常工作
 	state_manager = PlayerStateManager.new(self)
-	state_manager.name = "StateManager"
+	state_manager.name = Constants.NODE_STATE_MANAGER
 	add_child(state_manager)
 	print("✅ PlayerStateManager初始化完成")
 
@@ -162,7 +164,8 @@ func execute_attack(target_position: Vector2, _target: Node = null) -> void:
 
 func create_basic_attack_projectile(target_pos: Vector2) -> void:
 	"""创建普攻弹道"""
-	var projectile = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var projectile_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	var projectile = projectile_scene.instantiate()
 	
 	# 设置弹道属性
 	projectile.position = position
@@ -171,8 +174,8 @@ func create_basic_attack_projectile(target_pos: Vector2) -> void:
 	projectile.speed = 500
 	projectile.max_distance = attack_range
 	projectile.life_time = 3.0
-	projectile.collision_layer = 8  # 玩家弹道层
-	projectile.collision_mask = 5   # 检测敌人层(4) + 障碍物层(1) = 5
+	projectile.collision_layer = Constants.LAYER_PLAYER_PROJECTILE
+	projectile.collision_mask = Constants.MASK_WORLD_AND_ENEMIES
 	projectile.source = self  # 设置伤害来源为玩家
 	
 	# 计算方向
@@ -180,7 +183,7 @@ func create_basic_attack_projectile(target_pos: Vector2) -> void:
 	projectile.direction = direction
 	
 	# 添加到场景
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(projectile)
 	else:
@@ -303,7 +306,7 @@ func respawn() -> void:
 
 func move_to_start_room() -> void:
 	"""移动到起始房间"""
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
 		var start_room = dungeon_generator.rooms.get(Vector2i(0, 0))
 		if start_room:

@@ -33,7 +33,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 		print("  🔥 玩家获得伤害增幅buff (", int(damage_boost_strength * 100), "%, ", damage_boost_duration, "秒)")
 	
 	# ✅ 再获取玩家当前攻击力（已包含buff加成）
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 创建火球投射物

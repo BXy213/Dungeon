@@ -44,7 +44,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	await player.get_tree().create_timer(delay).timeout
 	
 	# 计算技能伤害
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 创建触发效果
@@ -75,4 +75,3 @@ func get_skill_indicator_info() -> Dictionary:
 	var info = super.get_skill_indicator_info()
 	info["type"] = "aoe"
 	return info
-

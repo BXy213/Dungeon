@@ -1,4 +1,4 @@
-class_name TornadoSkill
+﻿class_name TornadoSkill
 extends SkillBase
 
 # 🌪️ 强袭飓风 - 眩晕龙卷风
@@ -32,7 +32,7 @@ func create_skill_effect(effect_type: String, position: Vector2) -> Node:
 	effect.source = player  # 设置技能来源为玩家
 	
 	# 添加到场景但延迟初始化
-	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = player.get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(effect)
 	else:
@@ -45,7 +45,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	print("🌪️ 释放强袭飓风到: ", target_position)
 	
 	# 计算技能伤害（基于玩家攻击力）
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 创建龙卷风特效
@@ -75,4 +75,3 @@ func get_skill_indicator_info() -> Dictionary:
 	var info = super.get_skill_indicator_info()
 	info["type"] = "projectile"
 	return info
-

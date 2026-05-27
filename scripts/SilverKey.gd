@@ -1,4 +1,6 @@
-extends Area2D
+﻿extends Area2D
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🔑 银钥匙 - 敌人死亡掉落，玩家靠近自动拾取
 
@@ -22,11 +24,11 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	
 	# 设置碰撞层和掩码
-	collision_layer = 0  # 不在任何层
-	collision_mask = 1   # 检测物理层1（玩家）
+	collision_layer = Constants.LAYER_NONE
+	collision_mask = Constants.LAYER_PLAYER_BODY
 	
-	# 添加到"pickups"组
-	add_to_group("pickups")
+	# 添加到拾取物组
+	add_to_group(Constants.GROUP_PICKUPS)
 	
 	print("🔑 银钥匙已生成，位置: ", global_position)
 
@@ -38,7 +40,7 @@ func _physics_process(_delta: float) -> void:
 	
 	# 检测附近的玩家
 	if not player:
-		player = get_tree().get_first_node_in_group("players")
+		player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	
 	if player and is_instance_valid(player):
 		var distance = global_position.distance_to(player.global_position)
@@ -52,7 +54,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if is_picked_up:
 		return
 	
-	if body.is_in_group("players"):
+	if body.is_in_group(Constants.GROUP_PLAYERS):
 		pickup_by_player(body)
 
 func pickup_by_player(picked_player: Node) -> void:

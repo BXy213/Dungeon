@@ -1,5 +1,7 @@
-class_name EnemyCharacter
+﻿class_name EnemyCharacter
 extends CharacterBase
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🦹 敌人角色基类 - 继承自CharacterBase，提供敌人通用功能
 
@@ -50,7 +52,7 @@ func post_ready_setup() -> void:
 	super.post_ready_setup()
 	
 	# 设置敌人组
-	add_to_group("enemies")
+	add_to_group(Constants.GROUP_ENEMIES)
 	
 	# AI逻辑已直接集成到子类中，无需单独的AI控制器
 	
@@ -101,7 +103,7 @@ func navigate_to_target(target_pos: Vector2) -> void:
 		
 		var space_state = get_world_2d().direct_space_state
 		var query = PhysicsRayQueryParameters2D.create(global_position, detection_target)
-		query.collision_mask = 1  # 只检测障碍物层
+		query.collision_mask = Constants.LAYER_WORLD
 		query.exclude = [self]
 		
 		var result = space_state.intersect_ray(query)
@@ -122,14 +124,14 @@ func navigate_to_target(target_pos: Vector2) -> void:
 					global_position, 
 					global_position + perpendicular_left * 80
 				)
-				left_ray.collision_mask = 1
+				left_ray.collision_mask = Constants.LAYER_WORLD
 				left_ray.exclude = [self]
 				
 				var right_ray = PhysicsRayQueryParameters2D.create(
 					global_position, 
 					global_position + perpendicular_right * 80
 				)
-				right_ray.collision_mask = 1
+				right_ray.collision_mask = Constants.LAYER_WORLD
 				right_ray.exclude = [self]
 				
 				var left_result = space_state.intersect_ray(left_ray)
@@ -215,7 +217,7 @@ func launch_projectile(target_pos: Vector2, _target: Node = null) -> void:
 	print("🚀 ", character_name, " 发射弹道 → 目标: ", target_pos, " 伤害: ", current_attack_damage)
 	
 	# 房间ID验证 - 只在当前房间创建弹道
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
 		var current_room_id = dungeon_generator.get_current_room_coord()
 		if room_id != current_room_id:
@@ -233,7 +235,8 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 	⚠️ 子类不应该重写此方法！
 	要自定义弹道外观，请重写 set_projectile_appearance()
 	"""
-	var projectile = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var projectile_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	var projectile = projectile_scene.instantiate()
 	
 	# 设置弹道基础属性
 	projectile.position = global_position
@@ -242,8 +245,8 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 	projectile.speed = 300  # 默认速度，子类可在set_projectile_appearance中修改
 	projectile.max_distance = attack_range * 2  # 给足够的飞行距离
 	projectile.life_time = 3.0
-	projectile.collision_layer = 4  # 敌人弹道层
-	projectile.collision_mask = 3   # 检测玩家层(2) + 障碍物层(1) = 3
+	projectile.collision_layer = Constants.LAYER_ENEMY
+	projectile.collision_mask = Constants.MASK_WORLD_AND_PLAYERS
 	projectile.source = self  # 弹道来源（用于寒冰护甲反击等）
 	
 	# 计算方向
@@ -256,7 +259,7 @@ func create_attack_projectile(target_pos: Vector2) -> void:
 	set_projectile_appearance(projectile)
 	
 	# 添加到场景
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(projectile)
 	else:
@@ -333,8 +336,8 @@ func take_damage(amount: int, source: Node = null) -> void:
 	"""敌人受伤"""
 	# 记录玩家造成的伤害
 	if source:
-		if source.is_in_group("players"):
-			var game_manager = get_tree().current_scene.get_node_or_null("GameManager")
+		if source.is_in_group(Constants.GROUP_PLAYERS):
+			var game_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_GAME_MANAGER)
 			if game_manager and game_manager.has_method("record_damage"):
 				game_manager.record_damage(amount)
 			else:
@@ -497,7 +500,7 @@ func play_death_animation() -> void:
 func drop_rewards() -> void:
 	"""掉落奖励"""
 	# 给玩家经验值
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
 		player.gain_experience(experience_reward)
 	
@@ -604,7 +607,7 @@ func get_debug_info() -> Dictionary:
 		"room_id": str(room_id),
 		"experience_reward": experience_reward,
 		"ai_state": get_ai_state(),
-		"ai_description": get_ai_description() if has_method("get_ai_description") else "无描述",
+		"ai_description": str(get_ai_description()) if has_method("get_ai_description") else "无描述",
 		"health": str(health) + "/" + str(max_health),
 	})
 	return debug_info
@@ -621,7 +624,9 @@ func get_current_room_bounds() -> Rect2:
 	如果找不到房间，返回一个默认的大区域
 	"""
 	# 尝试获取当前房间（敌人在Enemies容器中，父节点是房间）
-	var current_room = get_parent().get_parent() if get_parent() and get_parent().get_parent() else null
+	var current_room = null
+	if get_parent() and get_parent().get_parent():
+		current_room = get_parent().get_parent()
 	
 	if not current_room:
 		print("⚠️ 无法找到当前房间，使用默认边界")

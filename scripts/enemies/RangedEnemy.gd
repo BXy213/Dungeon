@@ -1,4 +1,4 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name RangedEnemy
 
 # 🏹 远程小兵 - 保持距离射击并游走
@@ -117,7 +117,7 @@ func setup_collision_size() -> void:
 
 func _find_target():
 	"""寻找玩家目标"""
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= detection_range:

@@ -1,5 +1,14 @@
-extends Node2D
+﻿extends Node2D
 class_name Room
+
+const EnemyTypes = preload("res://scripts/factories/EnemyFactory.gd")
+const Constants = preload("res://scripts/core/GameConstants.gd")
+const SpawnPlanner = preload("res://scripts/rooms/EnemySpawnPlanner.gd")
+const SaveCodec = preload("res://scripts/rooms/RoomSaveCodec.gd")
+
+const START_ROOM_ID := Vector2i(0, 0)
+const DEFAULT_DUNGEON_SIZE := Vector2i(5, 5)
+const SAFE_SPAWN_MARGIN := 150.0
 
 # 房间脚本 - 管理房间内容和状态
 
@@ -48,7 +57,7 @@ func _ready() -> void:
 	add_child(obstacles_container)
 	
 	enemies_container = Node2D.new()
-	enemies_container.name = "Enemies"
+	enemies_container.name = Constants.NODE_ENEMIES_CONTAINER
 	add_child(enemies_container)
 	
 	print("房间 ", room_id, " 创建完成")
@@ -83,7 +92,7 @@ func setup_room_content() -> void:
 func generate_obstacles() -> void:
 	"""生成障碍物（网格化布局，避免形成封闭环）"""
 	# 初始房间不生成障碍物，避免卡死玩家
-	if room_id == Vector2i(0, 0):
+	if is_start_room():
 		print("🏠 初始房间 (0,0) 不生成障碍物")
 		return
 	
@@ -219,7 +228,7 @@ func is_grid_connected(grid_map: Array, cols: int, rows: int) -> bool:
 
 func generate_enemies() -> void:
 	# 如果是起始房间(0,0)，不生成敌人
-	if room_id == Vector2i(0, 0):
+	if is_start_room():
 		print("起始房间 (0,0) 不生成敌人")
 		alive_enemy_count = 0
 		# 确保起始房间状态正确
@@ -228,16 +237,10 @@ func generate_enemies() -> void:
 			is_room_completed = true
 		return
 	
-	# 获取地牢信息来确定敌人类型
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
-	var dungeon_width = 5
-	var dungeon_height = 5
-	if dungeon_generator:
-		dungeon_width = dungeon_generator.dungeon_width
-		dungeon_height = dungeon_generator.dungeon_height
+	var dungeon_size = get_dungeon_size()
 	
 	# 根据新的刷怪逻辑确定敌人类型和数量
-	var enemies_to_spawn = determine_enemy_types(dungeon_width, dungeon_height)
+	var enemies_to_spawn = determine_enemy_types(dungeon_size.x, dungeon_size.y)
 	
 	if enemies_to_spawn.is_empty():
 		print("房间 ", room_id, " 不生成敌人")
@@ -246,11 +249,7 @@ func generate_enemies() -> void:
 		is_room_completed = true
 		return
 	
-	var safe_margin = 150
-	var spawn_area = Rect2(
-		Vector2(safe_margin, safe_margin),
-		room_size - Vector2(safe_margin * 2, safe_margin * 2)
-	)
+	var spawn_area = get_safe_spawn_area()
 	
 	print("正在生成房间内容: ", room_id)
 	
@@ -278,13 +277,12 @@ func generate_enemies() -> void:
 	print("房间 ", room_id, " 生成了 ", enemies.size(), " 个敌人")
 	
 	# 随机指定一个敌人携带银钥匙（BOSS房间除外）
-	var is_boss_room = (room_id.x == dungeon_width - 1 and room_id.y == dungeon_height - 1)
-	if enemies.size() > 0 and not is_boss_room:
+	if enemies.size() > 0 and not is_boss_room(dungeon_size):
 		var key_holder_index = randi() % enemies.size()
 		var key_holder = enemies[key_holder_index]
 		key_holder.has_silverkey = true
 		print("🔑 ", key_holder.character_name, " (#", key_holder_index, ") 携带银钥匙")
-	elif is_boss_room:
+	elif is_boss_room(dungeon_size):
 		print("🏆 BOSS房间不分配银钥匙")
 	
 	# 发出敌人计数变化信号
@@ -294,21 +292,12 @@ func generate_enemies() -> void:
 func generate_chest() -> void:
 	"""生成宝箱"""
 	# 起始房间不生成宝箱
-	if room_id == Vector2i(0, 0):
+	if is_start_room():
 		print("📦 起始房间 (0,0) 不生成宝箱")
 		return
 	
-	# 获取地牢信息来判断是否是BOSS房间
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
-	var dungeon_width = 5
-	var dungeon_height = 5
-	if dungeon_generator:
-		dungeon_width = dungeon_generator.dungeon_width
-		dungeon_height = dungeon_generator.dungeon_height
-	
 	# BOSS房间不生成宝箱
-	var is_boss_room = (room_id.x == dungeon_width - 1 and room_id.y == dungeon_height - 1)
-	if is_boss_room:
+	if is_boss_room(get_dungeon_size()):
 		print("📦 BOSS房间不生成宝箱")
 		return
 	
@@ -319,13 +308,7 @@ func generate_chest() -> void:
 	var chest = ChestScene.instantiate()
 	
 	# 找到合适的生成位置（避开障碍物和敌人）
-	var safe_margin = 150
-	var spawn_area = Rect2(
-		Vector2(safe_margin, safe_margin),
-		room_size - Vector2(safe_margin * 2, safe_margin * 2)
-	)
-	
-	var chest_pos = get_valid_chest_position(spawn_area)
+	var chest_pos = get_valid_chest_position(get_safe_spawn_area())
 	chest.position = chest_pos
 	
 	# 设置z_index确保宝箱可见
@@ -384,117 +367,29 @@ func get_valid_chest_position(spawn_area: Rect2) -> Vector2:
 	return room_size / 2
 
 func determine_enemy_types(dungeon_width: int, dungeon_height: int) -> Array[String]:
-	"""根据房间位置确定敌人类型"""
-	var enemies_to_spawn: Array[String] = []
-	
-	# 最右下角的房间 - 只刷新一个BOSS
-	if room_id == Vector2i(dungeon_width - 1, dungeon_height - 1):
-		enemies_to_spawn.append("boss")
-		print("🏆 BOSS房间: ", room_id)
-		return enemies_to_spawn
-	
-	# 前三个房间的判断（通过探索顺序或距离判断）
-	var distance_from_start = abs(room_id.x) + abs(room_id.y)  # 曼哈顿距离
-	
-	if distance_from_start <= 1:
-		# 前一个房间：生成3-5个基础敌人（近战、远程、爆破者）
-		var enemy_count = randi() % 3 + 3  # 3-5个敌人
-		for i in range(enemy_count):
-			var rand = randf()
-			if rand < 0.5:  # 50%概率近战
-				enemies_to_spawn.append("melee_soldier")
-			elif rand < 0.85:  # 35%概率远程
-				enemies_to_spawn.append("ranged_soldier")
-			else:  # 15%概率爆破者
-				enemies_to_spawn.append("bomber")
-		print("🥉 早期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
-	elif distance_from_start <= 3:
-		# 中间三个房间：生成5-7个基础敌人（近战、远程、爆破者）
-		var enemy_count = randi() % 3 + 6  # 6-8个敌人
-		for i in range(enemy_count):
-			var rand = randf()
-			if rand < 0.5:  # 50%概率近战
-				enemies_to_spawn.append("melee_soldier")
-			elif rand < 0.85:  # 35%概率远程
-				enemies_to_spawn.append("ranged_soldier")
-			else:  # 15%概率爆破者
-				enemies_to_spawn.append("bomber")
-		print("🥉 早期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
-	else:
-		# 其他房间：生成8-10个混合敌人（包含精英、治疗者、分裂者等）
-		var enemy_count = randi() % 3 + 8  # 8-10个敌人
-		var has_elite = false
-		var has_healer = false
-		
-		for i in range(enemy_count):
-			# 优先确保有1个精英和1个治疗者
-			if i == 0 and randf() < 0.8:  # 80%概率有精英
-				enemies_to_spawn.append("elite_melee")
-				has_elite = true
-				continue
-			
-			if i == 1 and randf() < 0.6:  # 60%概率有治疗者
-				enemies_to_spawn.append("healer")
-				has_healer = true
-				continue
-			
-			# 其余敌人随机生成
-			var rand = randf()
-			if rand < 0.3:  # 30%概率近战
-				enemies_to_spawn.append("melee_soldier")
-			elif rand < 0.5:  # 20%概率远程
-				enemies_to_spawn.append("ranged_soldier")
-			elif rand < 0.65:  # 15%概率爆破者
-				enemies_to_spawn.append("bomber")
-			elif rand < 0.8:  # 15%概率分裂者
-				enemies_to_spawn.append("splitter")
-			elif not has_elite and rand < 0.9:  # 10%概率额外精英
-				enemies_to_spawn.append("elite_melee")
-				has_elite = true
-			elif not has_healer:  # 10%概率额外治疗者
-				enemies_to_spawn.append("healer")
-				has_healer = true
-			else:  # 默认近战
-				enemies_to_spawn.append("melee_soldier")
-		
-		print("⭐ 后期房间: ", room_id, " 距离起始点: ", distance_from_start, " 敌人数: ", enemy_count)
-	
-	return enemies_to_spawn
+	return SpawnPlanner.determine_enemy_types(room_id, dungeon_width, dungeon_height)
 
-# 预加载敌人子类（使用不同的名称避免与全局类名冲突）
-const MeleeEnemyScript = preload("res://scripts/enemies/MeleeEnemy.gd")
-const RangedEnemyScript = preload("res://scripts/enemies/RangedEnemy.gd")
-const EliteEnemyScript = preload("res://scripts/enemies/EliteEnemy.gd")
-const BossEnemyScript = preload("res://scripts/enemies/BossEnemy.gd")
-const HealerEnemyScript = preload("res://scripts/enemies/HealerEnemy.gd")
-const BomberEnemyScript = preload("res://scripts/enemies/BomberEnemy.gd")
-const SplitterEnemyScript = preload("res://scripts/enemies/SplitterEnemy.gd")
+func is_start_room() -> bool:
+	return room_id == START_ROOM_ID
+
+func get_dungeon_size() -> Vector2i:
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
+	if dungeon_generator:
+		return Vector2i(dungeon_generator.dungeon_width, dungeon_generator.dungeon_height)
+	return DEFAULT_DUNGEON_SIZE
+
+func is_boss_room(dungeon_size: Vector2i) -> bool:
+	return room_id == Vector2i(dungeon_size.x - 1, dungeon_size.y - 1)
+
+func get_safe_spawn_area() -> Rect2:
+	return Rect2(
+		Vector2(SAFE_SPAWN_MARGIN, SAFE_SPAWN_MARGIN),
+		room_size - Vector2(SAFE_SPAWN_MARGIN * 2, SAFE_SPAWN_MARGIN * 2)
+	)
 
 func create_enemy_by_type(enemy_type: String) -> Node:
 	"""根据类型创建敌人（使用新的敌人子类）"""
-	var enemy: Node
-	
-	# 根据类型创建对应的敌人子类
-	match enemy_type:
-		"melee_soldier":
-			enemy = MeleeEnemyScript.create_melee_enemy(room_id)
-		"ranged_soldier":
-			enemy = RangedEnemyScript.create_ranged_enemy(room_id)
-		"elite_melee":
-			enemy = EliteEnemyScript.create_elite_enemy(room_id)
-		"boss":
-			enemy = BossEnemyScript.create_boss_enemy(room_id)
-		"healer":
-			enemy = HealerEnemyScript.create_healer_enemy(room_id)
-		"bomber":
-			enemy = BomberEnemyScript.create_bomber_enemy(room_id)
-		"splitter":
-			enemy = SplitterEnemyScript.create_splitter_enemy(room_id)
-		_:
-			print("⚠️ 未知敌人类型: ", enemy_type, "，默认创建近战小兵")
-			enemy = MeleeEnemyScript.create_melee_enemy(room_id)
-	
-	return enemy
+	return EnemyTypes.create_enemy(enemy_type, room_id)
 
 func get_valid_spawn_position(spawn_area: Rect2) -> Vector2:
 	"""获取有效的生成位置，避免与障碍物重叠"""
@@ -536,41 +431,24 @@ func save_room_data() -> void:
 	saved_obstacle_data.clear()
 	for obstacle in obstacles:
 		if is_instance_valid(obstacle):
-			var obstacle_data = {
-				"type": obstacle.get_obstacle_type(),
-				"position": obstacle.position
-			}
-			saved_obstacle_data.append(obstacle_data)
+			saved_obstacle_data.append(SaveCodec.create_obstacle_data(obstacle))
 	
 	# 保存敌人数据
 	saved_enemy_data.clear()
 	for enemy in enemies:
 		if is_instance_valid(enemy):
-			var enemy_data = {
-				"position": enemy.position,
-				"health": enemy.health,
-				"max_health": enemy.max_health,
-				"is_dead": enemy.is_dead,
-				"enemy_type": get_enemy_type_as_int(enemy)
-			}
-			saved_enemy_data.append(enemy_data)
+			saved_enemy_data.append(SaveCodec.create_enemy_data(enemy))
 	
 	has_saved_data = true
 	print("已保存房间数据: ", room_id, " 障碍物:", saved_obstacle_data.size(), " 敌人:", saved_enemy_data.size())
 
 func get_enemy_type_as_int(enemy: Node) -> int:
 	"""获取敌人类型的整数表示（兼容性方法）"""
-	var enemy_name = enemy.character_name
-	if "近战" in enemy_name:
-		return 0  # MELEE_SOLDIER
-	elif "远程" in enemy_name:
-		return 1  # RANGED_SOLDIER
-	elif "精英" in enemy_name:
-		return 2  # ELITE_MELEE
-	elif "BOSS" in enemy_name:
-		return 3  # BOSS
-	else:
-		return 0  # 默认近战
+	return EnemyTypes.to_legacy_type_id(get_enemy_type_id(enemy))
+
+func get_enemy_type_id(enemy: Node) -> String:
+	"""获取敌人类型ID，用于保存和恢复房间状态"""
+	return EnemyTypes.from_character_name(enemy.character_name)
 
 func load_room_data() -> void:
 	# 清理现有数据
@@ -587,10 +465,10 @@ func load_room_data() -> void:
 	
 	# 加载敌人（只加载存活的敌人）
 	for enemy_data in saved_enemy_data:
-		if not enemy_data.is_dead:  # 只加载存活的敌人
+		if SaveCodec.is_saved_enemy_alive(enemy_data):
 			var enemy = create_enemy_by_type_from_data(enemy_data)
 			if enemy:
-				enemy.position = enemy_data.position
+				enemy.position = enemy_data.get("position", Vector2.ZERO)
 				enemy.room_id = room_id
 				
 				enemies_container.add_child(enemy)
@@ -599,8 +477,10 @@ func load_room_data() -> void:
 				await get_tree().process_frame
 				
 				# 直接设置属性，新架构保证这些属性存在
-				enemy.health = enemy_data.health
-				enemy.max_health = enemy_data.max_health
+				enemy.max_health = int(enemy_data.get("max_health", enemy.max_health))
+				enemy.health = int(enemy_data.get("health", enemy.health))
+				if "has_silverkey" in enemy:
+					enemy.has_silverkey = bool(enemy_data.get("has_silverkey", false))
 				
 				enemies.append(enemy)
 				
@@ -611,41 +491,7 @@ func load_room_data() -> void:
 
 func create_enemy_by_type_from_data(enemy_data: Dictionary) -> Node:
 	"""从保存的数据创建敌人（使用新的敌人子类）"""
-	var enemy: Node
-	var enemy_type_string = ""
-	
-	# 确定敌人类型
-	if "enemy_type" in enemy_data:
-		# 新版本有enemy_type字段
-		match enemy_data.enemy_type:
-			0: # MELEE_SOLDIER
-				enemy_type_string = "melee_soldier"
-			1: # RANGED_SOLDIER
-				enemy_type_string = "ranged_soldier"
-			2: # ELITE_MELEE
-				enemy_type_string = "elite_melee"
-			3: # BOSS
-				enemy_type_string = "boss"
-			_:
-				enemy_type_string = "melee_soldier"
-	else:
-		# 旧版本没有enemy_type，根据名称推断
-		var enemy_name = enemy_data.get("character_name", "")
-		if "近战" in enemy_name:
-			enemy_type_string = "melee_soldier"
-		elif "远程" in enemy_name:
-			enemy_type_string = "ranged_soldier"
-		elif "精英" in enemy_name:
-			enemy_type_string = "elite_melee"
-		elif "BOSS" in enemy_name or "Boss" in enemy_name:
-			enemy_type_string = "boss"
-		else:
-			enemy_type_string = "melee_soldier"
-	
-	# 使用统一的创建方法
-	enemy = create_enemy_by_type(enemy_type_string)
-	
-	return enemy
+	return create_enemy_by_type(SaveCodec.get_enemy_type_id(enemy_data))
 
 func _on_enemy_character_died(enemy: CharacterBase) -> void:
 	"""敌人死亡处理"""
@@ -718,7 +564,7 @@ func is_room_exploration_completed() -> bool:
 
 func update_connected_corridors() -> void:
 	"""更新连接的通道状态"""
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator and dungeon_generator.has_method("update_corridors_for_room"):
 		dungeon_generator.update_corridors_for_room(room_id, room_state)
 

@@ -1,4 +1,4 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name EliteEnemy
 
 # 🛡️ 精英战士 - 预测性攻击，毒技能
@@ -36,7 +36,7 @@ func _init():
 	current_attack_damage = base_attack_damage
 	
 	# 初始化毒攻击时间
-	last_poison_time = Time.get_time_dict_from_system().get("unix", 0) - poison_cooldown
+	last_poison_time = get_time_seconds() - poison_cooldown
 
 func _ready():
 	super._ready()
@@ -112,7 +112,7 @@ func setup_collision_size() -> void:
 
 func _find_target():
 	"""寻找玩家目标"""
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= detection_range:
@@ -186,11 +186,14 @@ func set_projectile_appearance(projectile: Node) -> void:
 
 func can_use_poison_attack() -> bool:
 	"""检查是否可以使用毒攻击"""
-	var current_time = Time.get_time_dict_from_system().get("unix", 0)
+	var current_time = get_time_seconds()
 	var time_since_last_poison = current_time - last_poison_time
 	
 	# 冷却时间检查 + 概率检查
 	return time_since_last_poison >= poison_cooldown and randf() < poison_attack_chance
+
+func get_time_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 func perform_poison_attack() -> void:
 	"""执行毒攻击"""
@@ -200,23 +203,27 @@ func perform_poison_attack() -> void:
 	print("💚 精英战士释放毒攻击!")
 	
 	# 更新最后使用毒攻击的时间
-	last_poison_time = Time.get_time_dict_from_system().get("unix", 0)
+	last_poison_time = get_time_seconds()
 	
 	# 创建毒攻击效果
 	create_poison_attack_effect()
 	
 	# 对目标造成毒伤害并应用毒buff
 	if current_target.has_method("take_damage"):
-		var poison_damage = current_attack_damage * 0.8
+		var poison_damage = int(current_attack_damage * 0.8)
 		current_target.take_damage(poison_damage)
 		
 		# 应用毒buff
-		if current_target.has_method("apply_buff"):
-			current_target.buff_system.apply_buff(0, 2.0, 8.0)  # BuffType.POISON = 0
+		if "buff_system" in current_target and current_target.buff_system:
+			current_target.buff_system.apply_buff(BuffSystem.BuffType.POISON, 2.0, 8.0, self)
 
 func create_poison_attack_effect() -> void:
 	"""创建毒攻击视觉效果"""
-	var poison_effect = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var effect_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	if not effect_scene:
+		return
+	
+	var poison_effect = effect_scene.instantiate()
 	poison_effect.global_position = global_position
 	poison_effect.skill_type = "poison"
 	poison_effect.life_time = 1.0
@@ -228,7 +235,7 @@ func create_poison_attack_effect() -> void:
 		effect_sprite.scale = Vector2(1.5, 1.5)
 	
 	# 添加到场景
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(poison_effect)
 	else:

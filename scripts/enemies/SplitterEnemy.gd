@@ -1,4 +1,4 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name SplitterEnemy
 
 # 🔀 分裂体 - 死亡时分裂成小型敌人（参考DOTA育母蜘蛛/LOL玛尔扎哈虫子）
@@ -23,6 +23,15 @@ static func create_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
 	splitter.is_room_enemy = true
 	splitter.room_id = enemy_room_id
 	return splitter
+
+static func create_mini_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
+	"""静态工厂方法：创建小型分裂体"""
+	var mini_splitter = SplitterEnemy.new()
+	mini_splitter.is_mini_split = true
+	mini_splitter.is_room_enemy = true
+	mini_splitter.room_id = enemy_room_id
+	mini_splitter.apply_mini_split_stats()
+	return mini_splitter
 
 ## ========== 初始化方法 ==========
 
@@ -55,6 +64,20 @@ func _init():
 	# 更新当前属性
 	current_speed = base_speed
 	current_attack_damage = base_attack_damage
+
+func apply_mini_split_stats() -> void:
+	"""应用小型分裂体属性。is_mini_split 在 _init() 后设置时也可复用。"""
+	character_name = "小分裂体"
+	max_health = 30
+	health = 30
+	base_speed = 110.0
+	base_attack_damage = 8
+	attack_range = 120.0
+	attack_cooldown = 1.2
+	experience_reward = 10
+	current_speed = base_speed
+	current_attack_damage = base_attack_damage
+	current_defense = 0
 
 func _ready():
 	super._ready()
@@ -157,7 +180,7 @@ func _find_target():
 	if is_dead:
 		return
 	
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= detection_range:
@@ -191,7 +214,9 @@ func die() -> void:
 func _spawn_mini_splits() -> void:
 	"""生成小型分裂体"""
 	# 获取当前房间
-	var current_room = get_parent().get_parent() if get_parent() and get_parent().get_parent() else null
+	var current_room = null
+	if get_parent() and get_parent().get_parent():
+		current_room = get_parent().get_parent()
 	if not current_room:
 		print("⚠️ 无法找到当前房间，分裂失败")
 		return
@@ -200,7 +225,7 @@ func _spawn_mini_splits() -> void:
 	print("🔀 开始分裂成 ", split_count, " 个小型体，死亡位置(全局): ", death_position)
 	
 	# 获取敌人容器，计算相对位置
-	var enemies_container = current_room.get_node_or_null("Enemies")
+	var enemies_container = current_room.get_node_or_null(Constants.NODE_ENEMIES_CONTAINER)
 	if not enemies_container:
 		print("⚠️ 无法找到敌人容器，分裂失败")
 		return
@@ -263,24 +288,7 @@ func _deferred_spawn_mini_splits(current_room: Node, enemies_container: Node, de
 
 func _create_mini_split() -> SplitterEnemy:
 	"""创建小型分裂体实例"""
-	var mini_split = SplitterEnemy.new()
-	mini_split.is_mini_split = true
-	mini_split.is_room_enemy = true
-	
-	# ✅ 重新初始化属性（因为is_mini_split在_init()之后才设置）
-	mini_split.character_name = "小分裂体"
-	mini_split.max_health = 30
-	mini_split.health = 30  # ✅ 关键：设置初始生命值
-	mini_split.base_speed = 110.0
-	mini_split.base_attack_damage = 8
-	mini_split.attack_range = 120.0
-	mini_split.attack_cooldown = 1.2
-	mini_split.experience_reward = 10
-	
-	# 更新当前属性
-	mini_split.current_speed = mini_split.base_speed
-	mini_split.current_attack_damage = mini_split.base_attack_damage
-	mini_split.current_defense = 0
+	var mini_split = create_mini_splitter_enemy(room_id)
 	
 	print("  🔀 创建小分裂体: health=", mini_split.health, "/", mini_split.max_health)
 	
@@ -420,7 +428,7 @@ func _is_position_valid(check_position: Vector2) -> bool:
 	shape.size = Vector2(12, 12)  # 稍大于小分裂体的碰撞体积（10x10）
 	query.shape = shape
 	query.transform = Transform2D(0, check_position)
-	query.collision_mask = 1  # 只检测障碍物层（第1层）
+	query.collision_mask = Constants.LAYER_WORLD
 	
 	# 执行查询
 	var results = space_state.intersect_shape(query, 1)

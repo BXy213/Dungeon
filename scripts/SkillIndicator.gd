@@ -1,4 +1,6 @@
-extends Node2D
+﻿extends Node2D
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 var skill_range: float = 0.0
 var skill_type: String = ""
@@ -39,7 +41,7 @@ func _process(_delta: float) -> void:
 	if not is_active:
 		return
 	
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if not player:
 		return
 	
@@ -99,7 +101,7 @@ func get_clamped_position() -> Vector2:
 func find_enemy_at_cursor(tolerance: float = 50.0) -> Node:
 	"""查找鼠标位置附近的敌人"""
 	var mouse_pos = get_global_mouse_position()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	var closest_enemy = null
 	var closest_distance = tolerance
 	
@@ -139,7 +141,8 @@ func add_enemy_highlight(enemy: Node) -> void:
 	# 添加到敌人节点（不是Sprite2D）
 	enemy.add_child(highlight_mask)
 	
-	print("🎯 为敌人添加高亮mask: ", enemy.character_name if "character_name" in enemy else enemy.name)
+	var enemy_name = str(enemy.character_name) if "character_name" in enemy else str(enemy.name)
+	print("🎯 为敌人添加高亮mask: ", enemy_name)
 
 func remove_enemy_highlight(enemy: Node) -> void:
 	"""移除敌人的高亮效果（删除mask层）"""
@@ -150,7 +153,8 @@ func remove_enemy_highlight(enemy: Node) -> void:
 	var mask = enemy.get_node_or_null("HighlightMask")
 	if mask:
 		mask.queue_free()
-		print("🎯 移除敌人高亮mask: ", enemy.character_name if "character_name" in enemy else enemy.name)
+		var enemy_name = str(enemy.character_name) if "character_name" in enemy else str(enemy.name)
+		print("🎯 移除敌人高亮mask: ", enemy_name)
 	
 	highlight_mask = null
 
@@ -158,7 +162,7 @@ func _draw() -> void:
 	if not is_active:
 		return
 	
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if not player:
 		return
 	

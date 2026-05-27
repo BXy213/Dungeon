@@ -1,4 +1,7 @@
-extends Node
+﻿extends Node
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
+const Styles = preload("res://scripts/ui/UIStyleFactory.gd")
 
 var death_panel = null
 var victory_panel = null
@@ -16,8 +19,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	
 	# 获取UI和玩家引用
-	death_panel = get_tree().current_scene.get_node_or_null("UI/DeathPanel")
-	player = get_tree().get_first_node_in_group("players")
+	death_panel = get_tree().current_scene.get_node_or_null(Constants.NODE_DEATH_PANEL)
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	
 	# 连接玩家死亡信号
 	if player:
@@ -72,7 +75,7 @@ func connect_enemy_signals() -> void:
 	"""连接所有房间的敌人死亡信号"""
 	await get_tree().process_frame
 	
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
 		print("📊 GameManager: 开始连接房间信号，房间数: ", dungeon_generator.rooms.size())
 		for room in dungeon_generator.rooms.values():
@@ -126,18 +129,10 @@ func create_victory_panel() -> void:
 		(720.0 - 400.0) / 2.0
 	)
 	
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style.border_color = Color.GOLD
-	style.border_width_left = 3
-	style.border_width_right = 3
-	style.border_width_top = 3
-	style.border_width_bottom = 3
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	victory_panel.add_theme_stylebox_override("panel", style)
+	victory_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.1, 0.1, 0.15, 0.95), Color.GOLD, 3, 10)
+	)
 	
 	# 创建内容容器
 	var vbox = VBoxContainer.new()
@@ -309,7 +304,7 @@ func restart_game() -> void:
 	get_tree().reload_current_scene()
 
 func reset_all_enemies() -> void:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	for enemy in enemies:
 		if enemy:
 			# 重置敌人血量到满值

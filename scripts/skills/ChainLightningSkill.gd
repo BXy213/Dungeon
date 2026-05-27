@@ -1,4 +1,4 @@
-class_name ChainLightningSkill
+﻿class_name ChainLightningSkill
 extends SkillBase
 
 # ⚡ 闪电链 - 弹跳攻击多个敌人（参考DOTA宙斯/LOL凯南）
@@ -72,7 +72,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 
 func find_next_bounce_target(from_position: Vector2, exclude_targets: Array) -> Node:
 	"""查找下一个弹跳目标（排除已命中的）"""
-	var enemies = player.get_tree().get_nodes_in_group("enemies")
+	var enemies = player.get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	var closest_enemy = null
 	var closest_distance = bounce_range
 	

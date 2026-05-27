@@ -1,5 +1,7 @@
-extends Node2D
+﻿extends Node2D
 class_name DungeonGenerator
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 房间状态常量
 const ROOM_UNEXPLORED = 0
@@ -70,7 +72,7 @@ func _ready() -> void:
 func setup_player_reference() -> void:
 	# 等待一帧确保场景树准备好
 	await get_tree().process_frame
-	player = get_tree().get_first_node_in_group("players")
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
 		# 将玩家移动到起始房间中心
 		var start_room = rooms.get(start_room_coord)
@@ -462,14 +464,14 @@ func _check_player_position() -> void:
 			change_to_new_room(new_room)
 			current_area_type = "room"
 			# 通知UI更新房间状态
-			var ui_manager = get_tree().current_scene.get_node_or_null("UI/UIManager")
+			var ui_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_UI_MANAGER)
 			if ui_manager and ui_manager.has_method("_on_area_changed"):
 				ui_manager._on_area_changed("room", str(new_room.room_id))
 		elif new_room == current_room and current_area_type != "room":
 			# 玩家从通道回到当前房间
 			current_area_type = "room"
 			print("玩家回到房间: ", current_room.room_id)
-			var ui_manager = get_tree().current_scene.get_node_or_null("UI/UIManager")
+			var ui_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_UI_MANAGER)
 			if ui_manager and ui_manager.has_method("_on_area_changed"):
 				ui_manager._on_area_changed("room", str(current_room.room_id))
 	elif area_info.type == "corridor":
@@ -479,7 +481,7 @@ func _check_player_position() -> void:
 			current_corridor_id = area_info.id
 			print("玩家进入通道: ", area_info.id)
 			# 通知UI更新
-			var ui_manager = get_tree().current_scene.get_node_or_null("UI/UIManager")
+			var ui_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_UI_MANAGER)
 			if ui_manager and ui_manager.has_method("_on_area_changed"):
 				ui_manager._on_area_changed("corridor", area_info.id)
 
@@ -553,7 +555,8 @@ func change_to_new_room(new_room) -> void:
 		return
 	
 	var old_room = current_room
-	print("玩家从房间 ", old_room.room_id if old_room else "无", " 移动到房间 ", new_room.room_id)
+	var old_room_text = str(old_room.room_id) if old_room else "无"
+	print("玩家从房间 ", old_room_text, " 移动到房间 ", new_room.room_id)
 	
 	# 探索限制现在由通道门的物理碰撞来处理，不再需要推回玩家
 	# 通道门在探索中房间会自动启用碰撞，物理阻止玩家进入通道
@@ -630,7 +633,7 @@ func get_total_rooms() -> int:
 
 func clear_all_projectiles() -> void:
 	# 清理所有活跃的弹道和技能效果，防止虚空攻击
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		for child in skill_effects.get_children():
 			if is_instance_valid(child):
@@ -820,7 +823,8 @@ func update_corridor_state(corridor_data: Dictionary, should_block: bool) -> voi
 			print("    📍 通道碰撞层级已清除: layer=0, mask=0")
 		
 		# 验证碰撞体位置和大小
-		print("    📐 通道碰撞体位置: ", collision.position, " 大小: ", collision_shape.shape.size if collision_shape and collision_shape.shape else "N/A")
+		var collision_size_text = str(collision_shape.shape.size) if collision_shape and collision_shape.shape else "N/A"
+		print("    📐 通道碰撞体位置: ", collision.position, " 大小: ", collision_size_text)
 	else:
 		print("    ⚠️ 警告：找不到通道碰撞体")
 	

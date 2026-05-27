@@ -1,4 +1,4 @@
-class_name ShockwaveSkill
+﻿class_name ShockwaveSkill
 extends SkillBase
 
 # ⚡ 震荡波 - 直线AOE伤害（参考DOTA巫妖）
@@ -31,7 +31,7 @@ func create_skill_effect(effect_type: String, position: Vector2) -> Node:
 	effect.source = player  # 设置技能来源为玩家
 	
 	# 添加到场景但延迟初始化
-	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = player.get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(effect)
 	else:
@@ -47,7 +47,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 		return
 	
 	# 计算技能伤害
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 创建震荡波

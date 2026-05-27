@@ -39,7 +39,7 @@ func execute_skill_effect(_target_position: Vector2, _target_node: Node) -> void
 	var targets = enemies.slice(0, min(max_targets, enemies.size()))
 	
 	# 计算技能伤害
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 对每个目标发射弹道

@@ -1,4 +1,7 @@
-extends Control
+﻿extends Control
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
+const Styles = preload("res://scripts/ui/UIStyleFactory.gd")
 
 var player = null
 var skill_manager = null
@@ -98,9 +101,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	
 	# 获取玩家引用
-	player = get_tree().get_first_node_in_group("players")
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
-		skill_manager = player.get_node_or_null("SkillManager")
+		skill_manager = player.get_node_or_null(Constants.NODE_SKILL_MANAGER)
 	
 	setup_skill_buttons()
 	create_skill_swap_ui()
@@ -122,8 +125,8 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_ESCAPE:
 			# 检查玩家是否正在选择技能
 			var is_selecting_skill = false
-			if player and player.has_node("StateManager"):
-				var state_manager = player.get_node("StateManager")
+			if player and player.has_node(Constants.NODE_STATE_MANAGER):
+				var state_manager = player.get_node(Constants.NODE_STATE_MANAGER)
 				if state_manager and state_manager.has_method("is_selecting_skill"):
 					is_selecting_skill = state_manager.is_selecting_skill()
 			
@@ -141,7 +144,7 @@ func _input(event: InputEvent) -> void:
 func setup_dungeon_reference() -> void:
 	# 等待一帧确保场景树准备好
 	await get_tree().process_frame
-	dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
 		dungeon_generator.room_changed.connect(_on_room_changed)
 		dungeon_generator.room_exploration_completed.connect(_on_room_exploration_completed)
@@ -154,12 +157,15 @@ func setup_dungeon_reference() -> void:
 			update_room_status_display(dungeon_generator.current_room)
 	
 	# 连接玩家到房间的敌人死亡信号
-	var game_player = get_tree().get_first_node_in_group("players")
+	var game_player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if game_player:
 		# 等待房间准备好后连接信号
 		call_deferred("connect_room_signals")
 
 func setup_skill_buttons() -> void:
+	if not skill_manager:
+		return
+	
 	for i in range(4):
 		var skill_info = skill_manager.get_skill_info(i)
 		if skill_info:
@@ -188,6 +194,9 @@ func _process(_delta: float) -> void:
 	update_player_status_ui()
 
 func update_skill_ui() -> void:
+	if not player or not skill_manager:
+		return
+	
 	for i in range(4):
 		var skill_info = skill_manager.get_skill_info(i)
 		
@@ -215,7 +224,7 @@ func update_skill_ui() -> void:
 			state_overlays[i].set_skill_state("disabled")
 			skill_buttons[i].disabled = true
 			cooldown_labels[i].text = ""
-		elif player.state_manager.is_selecting_skill() and player.state_manager.get_selected_skill_slot() == i:
+		elif player.state_manager and player.state_manager.is_selecting_skill() and player.state_manager.get_selected_skill_slot() == i:
 			# 技能选中状态 - 亮色叠加
 			state_overlays[i].set_skill_state("ready")
 			skill_buttons[i].disabled = false
@@ -233,8 +242,11 @@ func update_skill_ui() -> void:
 			mana_cost_labels[i].modulate = Color.RED
 
 func update_player_status_ui() -> void:
+	if not player:
+		return
+	
 	# 更新血条
-	var health_percent = float(player.health) / float(player.max_health)
+	var health_percent = get_safe_ratio(player.health, player.max_health)
 	health_bar.scale.x = health_percent
 	health_label.text = str(player.health) + "/" + str(player.max_health)
 	
@@ -247,13 +259,13 @@ func update_player_status_ui() -> void:
 		health_bar.color = Color.RED
 	
 	# 更新魔法条
-	var mana_percent = float(player.mana) / float(player.max_mana)
+	var mana_percent = get_safe_ratio(player.mana, player.max_mana)
 	mana_bar.scale.x = mana_percent
 	mana_label.text = str(player.mana) + "/" + str(player.max_mana)
 	
 	# ✅ 更新经验条（与血条和魔法条逻辑完全一致）
 	var required_exp = player.get_required_experience_for_level(player.level + 1)
-	var exp_percent = float(player.experience) / float(required_exp)
+	var exp_percent = get_safe_ratio(player.experience, required_exp)
 	exp_bar.scale.x = clamp(exp_percent, 0.0, 1.0)
 	exp_label.text = str(player.experience) + " / " + str(required_exp)
 	
@@ -264,6 +276,11 @@ func update_player_status_ui() -> void:
 	attack_label.text = "攻击: " + str(player.current_attack_damage)
 	defense_label.text = "防御: " + str(player.current_defense)
 	speed_label.text = "速度: " + str(int(player.current_speed))
+
+func get_safe_ratio(current_value: float, max_value: float) -> float:
+	if max_value <= 0.0:
+		return 0.0
+	return clamp(current_value / max_value, 0.0, 1.0)
 
 # 操作教程已移除，现在在暂停面板中显示
 
@@ -661,20 +678,10 @@ func create_room_status_panel() -> void:
 	var screen_size = get_viewport().get_visible_rect().size
 	room_status_panel.position = Vector2(screen_size.x - 300, 70)  # 暂停按钮下方
 	
-	# 设置面板样式
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.2, 0.2, 0.3, 0.8)
-	style_box.border_width_left = 2
-	style_box.border_width_right = 2
-	style_box.border_width_top = 2
-	style_box.border_width_bottom = 2
-	style_box.border_color = Color(0.5, 0.5, 0.6, 1.0)
-	style_box.corner_radius_top_left = 5
-	style_box.corner_radius_top_right = 5
-	style_box.corner_radius_bottom_left = 5
-	style_box.corner_radius_bottom_right = 5
-	
-	room_status_panel.add_theme_stylebox_override("panel", style_box)
+	room_status_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.2, 0.2, 0.3, 0.8), Color(0.5, 0.5, 0.6, 1.0), 2, 5)
+	)
 	
 	# 创建垂直容器
 	var vbox = VBoxContainer.new()
@@ -719,19 +726,10 @@ func create_minimap() -> void:
 	minimap_panel.position = Vector2(20, 20)  # 左上角位置
 	minimap_panel.size = panel_size
 	
-	# 设置面板样式
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.05, 0.05, 0.1, 0.9)
-	style_box.corner_radius_top_left = 8
-	style_box.corner_radius_top_right = 8
-	style_box.corner_radius_bottom_left = 8
-	style_box.corner_radius_bottom_right = 8
-	style_box.border_width_left = 2
-	style_box.border_width_right = 2
-	style_box.border_width_top = 2
-	style_box.border_width_bottom = 2
-	style_box.border_color = Color(0.4, 0.4, 0.6, 1.0)
-	minimap_panel.add_theme_stylebox_override("panel", style_box)
+	minimap_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.05, 0.05, 0.1, 0.9), Color(0.4, 0.4, 0.6, 1.0), 2, 8)
+	)
 	
 	# 创建标题
 	var title_label = Label.new()
@@ -776,19 +774,10 @@ func create_skill_swap_ui() -> void:
 	)
 	skill_swap_panel.visible = false
 	
-	# 设置面板样式
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.1, 0.1, 0.2, 0.95)
-	style_box.border_width_left = 3
-	style_box.border_width_right = 3
-	style_box.border_width_top = 3
-	style_box.border_width_bottom = 3
-	style_box.border_color = Color(0.6, 0.6, 0.8, 1.0)
-	style_box.corner_radius_top_left = 10
-	style_box.corner_radius_top_right = 10
-	style_box.corner_radius_bottom_left = 10
-	style_box.corner_radius_bottom_right = 10
-	skill_swap_panel.add_theme_stylebox_override("panel", style_box)
+	skill_swap_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.1, 0.1, 0.2, 0.95), Color(0.6, 0.6, 0.8, 1.0), 3, 10)
+	)
 	
 	create_skill_swap_content()
 	add_child(skill_swap_panel)
@@ -809,6 +798,15 @@ func create_skill_swap_content() -> void:
 	close_button.position = Vector2(skill_swap_panel.size.x - 50, 10)
 	close_button.pressed.connect(_on_skill_swap_close_pressed)
 	skill_swap_panel.add_child(close_button)
+	
+	if not skill_manager:
+		var empty_label = Label.new()
+		empty_label.text = "技能管理器未就绪"
+		empty_label.position = Vector2(20, 70)
+		empty_label.add_theme_font_size_override("font_size", 16)
+		empty_label.add_theme_color_override("font_color", Color.GRAY)
+		skill_swap_panel.add_child(empty_label)
+		return
 	
 	# 创建主容器
 	var main_container = HBoxContainer.new()
@@ -950,15 +948,10 @@ func create_available_skill_button(skill_id: String) -> Button:
 	if skill_id in active_skill_ids:
 		button.disabled = true
 		button.modulate = Color(0.4, 0.4, 0.4, 0.8)  # 更明显的暗化效果
-		# 添加边框效果表示已激活
-		var style_box = StyleBoxFlat.new()
-		style_box.bg_color = Color(0.2, 0.2, 0.2, 0.5)
-		style_box.border_width_left = 3
-		style_box.border_width_right = 3
-		style_box.border_width_top = 3
-		style_box.border_width_bottom = 3
-		style_box.border_color = Color.ORANGE
-		button.add_theme_stylebox_override("normal", style_box)
+		button.add_theme_stylebox_override(
+			"normal",
+			Styles.create_panel_style(Color(0.2, 0.2, 0.2, 0.5), Color.ORANGE, 3)
+		)
 	
 	return button
 
@@ -1023,19 +1016,10 @@ func create_skill_reward_ui() -> void:
 	)
 	skill_reward_panel.visible = false
 	
-	# 设置面板样式
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style_box.border_width_left = 2
-	style_box.border_width_right = 2
-	style_box.border_width_top = 2
-	style_box.border_width_bottom = 2
-	style_box.border_color = Color.GOLD
-	style_box.corner_radius_top_left = 10
-	style_box.corner_radius_top_right = 10
-	style_box.corner_radius_bottom_left = 10
-	style_box.corner_radius_bottom_right = 10
-	skill_reward_panel.add_theme_stylebox_override("panel", style_box)
+	skill_reward_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.1, 0.1, 0.15, 0.95), Color.GOLD, 2, 10)
+	)
 	
 	# 设置奖励面板为高优先级，但低于暂停面板
 	skill_reward_panel.z_index = 500
@@ -1111,19 +1095,10 @@ func create_pause_ui() -> void:
 	pause_panel.z_index = 1001  # 确保在所有面板之上
 	pause_panel.process_mode = Node.PROCESS_MODE_ALWAYS
 	
-	# 设置面板样式
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.05, 0.05, 0.1, 0.98)
-	style_box.border_width_left = 3
-	style_box.border_width_right = 3
-	style_box.border_width_top = 3
-	style_box.border_width_bottom = 3
-	style_box.border_color = Color.CYAN
-	style_box.corner_radius_top_left = 15
-	style_box.corner_radius_top_right = 15
-	style_box.corner_radius_bottom_left = 15
-	style_box.corner_radius_bottom_right = 15
-	pause_panel.add_theme_stylebox_override("panel", style_box)
+	pause_panel.add_theme_stylebox_override(
+		"panel",
+		Styles.create_panel_style(Color(0.05, 0.05, 0.1, 0.98), Color.CYAN, 3, 15)
+	)
 	
 	create_pause_content()
 	add_child(pause_panel)
@@ -1377,14 +1352,10 @@ func _on_reward_skill_button_clicked(skill_id: String) -> void:
 		if button.get_meta("skill_id", "") == skill_id:
 			# 选中的按钮
 			button.modulate = Color.YELLOW  # 高亮显示
-			var style_box = StyleBoxFlat.new()
-			style_box.bg_color = Color(1, 0.8, 0, 0.3)
-			style_box.border_width_left = 3
-			style_box.border_width_right = 3
-			style_box.border_width_top = 3
-			style_box.border_width_bottom = 3
-			style_box.border_color = Color.GOLD
-			button.add_theme_stylebox_override("normal", style_box)
+			button.add_theme_stylebox_override(
+				"normal",
+				Styles.create_panel_style(Color(1, 0.8, 0, 0.3), Color.GOLD, 3)
+			)
 		else:
 			# 未选中的按钮
 			var skill_info = skill_manager.get_skill_info_by_id(button.get_meta("skill_id", ""))

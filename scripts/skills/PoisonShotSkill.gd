@@ -27,7 +27,7 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	print("🧪 释放剧毒射击到: ", target_position)
 	
 	# 计算技能伤害（基于玩家攻击力）
-	var player_attack = player.current_attack_damage if player else 10
+	var player_attack = get_player_attack()
 	var skill_damage = int(player_attack * damage_multiplier)
 	
 	# 创建毒弹投射物

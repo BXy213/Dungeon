@@ -1,4 +1,6 @@
-extends Area2D
+﻿extends Area2D
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🏆 金钥匙 - BOSS死亡掉落，玩家拾取后触发结算
 
@@ -22,12 +24,12 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	
 	# 设置碰撞层和掩码
-	collision_layer = 0  # 不在任何层
-	collision_mask = 1   # 检测物理层1（玩家）
+	collision_layer = Constants.LAYER_NONE
+	collision_mask = Constants.LAYER_PLAYER_BODY
 	
-	# 添加到"pickups"组
-	add_to_group("pickups")
-	add_to_group("golden_keys")
+	# 添加到拾取物组
+	add_to_group(Constants.GROUP_PICKUPS)
+	add_to_group(Constants.GROUP_GOLDEN_KEYS)
 	
 	print("🏆 金钥匙已生成，位置: ", global_position)
 
@@ -39,7 +41,7 @@ func _physics_process(_delta: float) -> void:
 	
 	# 检测附近的玩家
 	if not player:
-		player = get_tree().get_first_node_in_group("players")
+		player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	
 	if player and is_instance_valid(player):
 		var distance = global_position.distance_to(player.global_position)
@@ -53,7 +55,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if is_picked_up:
 		return
 	
-	if body.is_in_group("players"):
+	if body.is_in_group(Constants.GROUP_PLAYERS):
 		pickup_by_player(body)
 
 func pickup_by_player(picked_player: Node) -> void:
@@ -72,7 +74,7 @@ func pickup_by_player(picked_player: Node) -> void:
 	golden_key_picked_up.emit(picked_player)
 	
 	# 触发游戏结算
-	var game_manager = get_tree().current_scene.get_node_or_null("GameManager")
+	var game_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_GAME_MANAGER)
 	if game_manager and game_manager.has_method("_on_boss_defeated"):
 		game_manager._on_boss_defeated()
 		print("  ✓ 已触发游戏结算界面")

@@ -1,4 +1,6 @@
-extends Area2D
+﻿extends Area2D
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 @export var speed: float = 400.0
 @export var life_time: float = 2.0
@@ -85,7 +87,9 @@ func setup_projectile_skill() -> void:
 		
 		sprite.scale = Vector2(scale_x, scale_y)
 		
-		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (长度: ", skill_length if skill_length > 0 else "默认", ", 宽度: ", skill_width if skill_width > 0 else "默认", ")")
+		var length_text = str(skill_length) if skill_length > 0 else "默认"
+		var width_text = str(skill_width) if skill_width > 0 else "默认"
+		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (长度: ", length_text, ", 宽度: ", width_text, ")")
 
 func setup_directional_collision() -> void:
 	"""设置定向碰撞盒（矩形，朝向发射方向）"""
@@ -203,7 +207,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 func handle_player_projectile_collision(body: Node2D) -> void:
 	# 玩家弹道：检查是否为敌人（不攻击玩家自己）
-	if body != get_tree().get_first_node_in_group("players") and body.has_method("take_damage"):
+	if body != get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS) and body.has_method("take_damage"):
 		# 检查是否是"穿透但每个敌人只命中一次"的技能（如龙卷风、声波）
 		if has_meta("hit_once") and get_meta("hit_once") == true:
 			# 检查这个敌人是否已经被命中过
@@ -216,7 +220,7 @@ func handle_player_projectile_collision(body: Node2D) -> void:
 				print("  🎯 首次命中敌人: ", body.name, " (已命中数: ", hit_targets.size(), ")")
 		
 		# 传递伤害来源（玩家）
-		body.take_damage(damage, source if source else get_tree().get_first_node_in_group("players"))
+		body.take_damage(damage, source if source else get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS))
 		print("玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害")
 		
 		# 如果有buff信息，对目标施加buff
@@ -256,7 +260,7 @@ func handle_enemy_projectile_collision(body: Node2D) -> void:
 	# 敌人弹道：检查是否为玩家
 	print("🎯 敌人弹道碰撞检测: 命中节点 ", body.name, " (", body.get_class(), ")")
 	
-	var is_player = (body.name == "Player" or body.is_in_group("players")) and body.has_method("take_damage")
+	var is_player = (body.name == "Player" or body.is_in_group(Constants.GROUP_PLAYERS)) and body.has_method("take_damage")
 	print("    最终判定是否为玩家: ", is_player)
 	
 	if is_player:
@@ -291,7 +295,7 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 	if not is_inside_tree():
 		return
 	
-	var impact_scene = load("res://Scenes/SkillEffect.tscn") as PackedScene
+	var impact_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
 	if not impact_scene:
 		return
 	
@@ -307,7 +311,7 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 		impact_sprite.scale = Vector2(0.8, 0.8)
 	
 	# 获取技能效果容器
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(impact)
 	else:

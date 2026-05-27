@@ -1,4 +1,6 @@
-extends Area2D
+﻿extends Area2D
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 📦 宝箱 - 使用银钥匙开启获得技能奖励
 #
@@ -32,8 +34,8 @@ signal chest_opened(chest: Node)
 
 func _ready() -> void:
 	# 设置碰撞层和掩码
-	collision_layer = 16  # 第5层（用于可交互对象）
-	collision_mask = 0    # 不检测物理碰撞
+	collision_layer = Constants.LAYER_INTERACTABLE
+	collision_mask = Constants.LAYER_NONE
 	
 	# 启用输入检测
 	input_pickable = true
@@ -45,16 +47,16 @@ func _ready() -> void:
 	if not mouse_exited.is_connected(_on_mouse_exited):
 		mouse_exited.connect(_on_mouse_exited)
 	
-	# 添加到"chests"组
-	add_to_group("chests")
+	# 添加到可交互组
+	add_to_group(Constants.GROUP_CHESTS)
 	visible = true
 	
 	# 等待一帧，确保节点树准备好
 	await get_tree().process_frame
 	
 	# 获取玩家和UI管理器引用
-	player = get_tree().get_first_node_in_group("players")
-	ui_manager = get_tree().current_scene.get_node_or_null("UI/UIManager")
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
+	ui_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_UI_MANAGER)
 	
 	print("📦 宝箱初始化完成，位置: ", global_position)
 
@@ -119,7 +121,7 @@ func attempt_interaction() -> void:
 	
 	# 检查玩家引用
 	if not player or not is_instance_valid(player):
-		player = get_tree().get_first_node_in_group("players")
+		player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 		if not player:
 			print("⚠️ 找不到玩家")
 			return
@@ -131,8 +133,8 @@ func attempt_interaction() -> void:
 		return
 	
 	# 检查玩家状态（需要在IDLE状态）
-	if player.has_node("StateManager"):
-		var state_manager = player.get_node("StateManager")
+	if player.has_node(Constants.NODE_STATE_MANAGER):
+		var state_manager = player.get_node(Constants.NODE_STATE_MANAGER)
 		if state_manager.current_state != state_manager.PlayerState.IDLE:
 			print("⚠️ 玩家当前无法交互（需要IDLE状态）")
 			return
@@ -163,7 +165,7 @@ func try_open(interacting_player: Node) -> void:
 	
 	# 显示奖励选择界面
 	if not ui_manager:
-		ui_manager = get_tree().current_scene.get_node_or_null("UI/UIManager")
+		ui_manager = get_tree().current_scene.get_node_or_null(Constants.NODE_UI_MANAGER)
 	
 	if ui_manager and ui_manager.has_method("show_chest_reward_selection"):
 		ui_manager.show_chest_reward_selection(self)

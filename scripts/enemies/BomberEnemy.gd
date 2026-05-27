@@ -1,4 +1,4 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name BomberEnemy
 
 # 💣 自爆兵 - 死亡时爆炸（参考DOTA特克斯/LOL炼金男爵虫子）
@@ -133,7 +133,7 @@ func _find_target():
 	if is_dead:
 		return
 	
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= detection_range:
@@ -190,14 +190,14 @@ func _find_targets_in_explosion() -> Array:
 	var targets = []
 	
 	# 检查玩家
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not player.is_dead:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= explosion_radius:
 			targets.append(player)
 	
 	# 可以选择是否伤害其他敌人（目前不伤害队友）
-	# var enemies = get_tree().get_nodes_in_group("enemies")
+	# var enemies = get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	# for enemy in enemies:
 	#     if enemy != self and not enemy.is_dead:
 	#         var distance = global_position.distance_to(enemy.global_position)
@@ -208,7 +208,10 @@ func _find_targets_in_explosion() -> Array:
 
 func _deferred_create_explosion_effect(explosion_position: Vector2, damage_to_deal: int) -> void:
 	"""延迟创建爆炸效果（在下一帧执行）"""
-	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
+	var SkillEffectScene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	if not SkillEffectScene:
+		return
+	
 	var explosion = SkillEffectScene.instantiate()
 	explosion.global_position = explosion_position
 	explosion.skill_type = "aoe"

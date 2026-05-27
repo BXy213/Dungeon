@@ -1,4 +1,4 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name HealerEnemy
 
 # 💚 治疗者 - 给其他敌人治疗（参考LOL索拉卡/DOTA巫医）
@@ -119,7 +119,7 @@ func _ai_update():
 	if is_dead:
 		return
 	
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if not player:
 		return
 	
@@ -141,7 +141,7 @@ func _ai_update():
 
 func _try_heal_allies() -> void:
 	"""尝试治疗队友"""
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	var injured_allies = []
 	
 	# 查找受伤的队友
@@ -177,7 +177,10 @@ func _heal_ally(ally: Node) -> void:
 
 func _create_heal_effect(target_pos: Vector2) -> void:
 	"""创建治疗特效"""
-	var SkillEffectScene = preload("res://Scenes/SkillEffect.tscn")
+	var SkillEffectScene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	if not SkillEffectScene:
+		return
+	
 	var heal_effect = SkillEffectScene.instantiate()
 	heal_effect.global_position = target_pos
 	heal_effect.skill_type = "heal"

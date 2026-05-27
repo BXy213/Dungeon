@@ -1,6 +1,7 @@
-extends "res://scripts/EnemyCharacter.gd"
+﻿extends "res://scripts/EnemyCharacter.gd"
 class_name BossEnemy
 
+const EnemyTypes = preload("res://scripts/factories/EnemyFactory.gd")
 # 👑 BOSS - 保持距离，召唤小兵，战术移动
 
 ## ========== BOSS特有属性 ==========
@@ -120,7 +121,7 @@ func setup_collision_size() -> void:
 
 func _find_target():
 	"""寻找玩家目标"""
-	var player = get_tree().get_first_node_in_group("players")
+	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
 		var distance = global_position.distance_to(player.global_position)
 		if distance <= detection_range:
@@ -261,7 +262,7 @@ func perform_summon_ability() -> void:
 
 func summon_minions() -> void:
 	"""召唤小兵"""
-	var dungeon_generator = get_tree().current_scene.get_node_or_null("DungeonGenerator")
+	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if not dungeon_generator:
 		print("⚠️ 未找到DungeonGenerator")
 		return
@@ -281,7 +282,7 @@ func summon_minions() -> void:
 	
 	# 召唤1个精英战士
 	var elite_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var elite_soldier = current_room.create_enemy_by_type("elite_melee")
+	var elite_soldier = current_room.create_enemy_by_type(EnemyTypes.ENEMY_ELITE_MELEE)
 	
 	if elite_soldier:
 		elite_soldier.position = elite_spawn_pos
@@ -298,7 +299,7 @@ func summon_minions() -> void:
 	# 召唤2个远程小兵
 	for i in range(2):
 		var ranged_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-		var ranged_soldier = current_room.create_enemy_by_type("ranged_soldier")
+		var ranged_soldier = current_room.create_enemy_by_type(EnemyTypes.ENEMY_RANGED_SOLDIER)
 		
 		if ranged_soldier:
 			ranged_soldier.position = ranged_spawn_pos
@@ -314,7 +315,7 @@ func summon_minions() -> void:
 	
 	# 召唤1个分裂者
 	var splitter_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var splitter = current_room.create_enemy_by_type("splitter")
+	var splitter = current_room.create_enemy_by_type(EnemyTypes.ENEMY_SPLITTER)
 	
 	if splitter:
 		splitter.position = splitter_spawn_pos
@@ -332,7 +333,11 @@ func summon_minions() -> void:
 
 func create_summon_effect() -> void:
 	"""创建召唤视觉效果"""
-	var summon_effect = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var effect_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	if not effect_scene:
+		return
+	
+	var summon_effect = effect_scene.instantiate()
 	summon_effect.global_position = global_position
 	summon_effect.skill_type = "summon"
 	summon_effect.life_time = 2.0
@@ -344,7 +349,7 @@ func create_summon_effect() -> void:
 		effect_sprite.scale = Vector2(2.0, 2.0)
 	
 	# 添加到场景
-	var skill_effects = get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(summon_effect)
 	else:

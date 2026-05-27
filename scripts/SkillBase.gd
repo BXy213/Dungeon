@@ -1,5 +1,7 @@
-class_name SkillBase
+﻿class_name SkillBase
 extends RefCounted
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🎯 技能基类 - 所有技能的通用属性和接口
 
@@ -147,20 +149,30 @@ func is_position_in_range(target_position: Vector2) -> bool:
 	
 	return true
 
+func get_player_attack(default_attack: int = 10) -> int:
+	"""获取玩家当前攻击力，避免技能脚本重复做弱类型三元判断。"""
+	if player and "current_attack_damage" in player:
+		return int(player.current_attack_damage)
+	return default_attack
+
 func create_skill_effect(effect_type: String, position: Vector2) -> Node:
 	"""创建技能效果节点
 	
 	⚠️ 重要：effect创建后不会立即添加到场景！
 	调用者必须在设置完所有属性后调用 effect.initialize() 来完成初始化。
 	"""
-	var effect = preload("res://Scenes/SkillEffect.tscn").instantiate()
+	var effect_scene = load(Constants.SCENE_SKILL_EFFECT) as PackedScene
+	if not effect_scene:
+		return null
+	
+	var effect = effect_scene.instantiate()
 	effect.global_position = position
 	effect.modulate = skill_color
 	effect.skill_type = effect_type
 	effect.source = player  # 设置技能来源为玩家
 	
 	# 添加到场景但延迟初始化
-	var skill_effects = player.get_tree().current_scene.get_node_or_null("SkillEffects")
+	var skill_effects = player.get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_EFFECTS)
 	if skill_effects:
 		skill_effects.add_child(effect)
 	else:
@@ -170,7 +182,7 @@ func create_skill_effect(effect_type: String, position: Vector2) -> Node:
 
 func find_enemies_in_area(center: Vector2, radius: float) -> Array:
 	"""查找区域内的敌人"""
-	var enemies = player.get_tree().get_nodes_in_group("enemies")
+	var enemies = player.get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	var targets = []
 	
 	for enemy in enemies:
@@ -183,7 +195,7 @@ func find_enemies_in_area(center: Vector2, radius: float) -> Array:
 
 func find_closest_enemy(position: Vector2, max_distance: float = 50.0) -> Node:
 	"""查找最近的敌人"""
-	var enemies = player.get_tree().get_nodes_in_group("enemies")
+	var enemies = player.get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
 	var closest_enemy = null
 	var closest_distance = max_distance
 	

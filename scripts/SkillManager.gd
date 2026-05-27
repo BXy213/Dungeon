@@ -1,31 +1,8 @@
-extends Node
+﻿extends Node
+
+const SkillCatalog = preload("res://scripts/registries/SkillRegistry.gd")
 
 # 🎯 重构后的技能管理器 - 基于技能类的新架构
-
-# 技能库 - 存储所有可用技能类路径
-var all_skill_classes = {
-	"fireball": "res://scripts/skills/FireballSkill.gd",
-	"ice_spike": "res://scripts/skills/IceSpikeSkill.gd",
-	"heal": "res://scripts/skills/HealSkill.gd",
-	"meteor": "res://scripts/skills/MeteorSkill.gd",
-	"snipe": "res://scripts/skills/SnipeSkill.gd",
-	"mana_restore": "res://scripts/skills/ManaRestoreSkill.gd",
-	# 🌟 新增技能 - 参考DOTA2祈求者
-	"poison_shot": "res://scripts/skills/PoisonShotSkill.gd",
-	"swift_strike": "res://scripts/skills/SwiftStrikeSkill.gd",
-	"tornado": "res://scripts/skills/TornadoSkill.gd",
-	"sonic_wave": "res://scripts/skills/SonicWaveSkill.gd",
-	# 🎮 新增技能 - 参考DOTA/LOL经典技能
-	"blink": "res://scripts/skills/BlinkSkill.gd",
-	"drain_life": "res://scripts/skills/DrainLifeSkill.gd",
-	"chain_lightning": "res://scripts/skills/ChainLightningSkill.gd",
-	"flame_storm": "res://scripts/skills/FlameStormSkill.gd",
-	# 🎯 更多MOBA技能
-	"frost_armor": "res://scripts/skills/FrostArmorSkill.gd",
-	"split_shot": "res://scripts/skills/SplitShotSkill.gd",
-	"shockwave": "res://scripts/skills/ShockwaveSkill.gd",
-	"void_prison": "res://scripts/skills/VoidPrisonSkill.gd"
-}
 
 # 🎮 玩家激活的技能实例（最多4个，可以为null）
 var active_skills = [null, null, null, null]
@@ -55,16 +32,15 @@ func set_initial_skills(skill_ids: Array[String]) -> void:
 	"""设置玩家的初始技能。参数是技能ID数组，最多4个。"""
 	# 先将技能添加到拥有的技能库
 	for skill_id in skill_ids:
-		if skill_id in all_skill_classes:
+		if SkillCatalog.has_skill(skill_id):
 			add_skill_to_library(skill_id)
 	
 	# 然后激活技能到槽位
 	for i in range(min(skill_ids.size(), 4)):
-		if skill_ids[i] in all_skill_classes:
-			var skill_script_path = all_skill_classes[skill_ids[i]]
-			var skill_script = load(skill_script_path)
-			active_skills[i] = skill_script.new(player, self)
-			print("设置初始技能槽 ", i, ": ", active_skills[i].skill_name)
+		if SkillCatalog.has_skill(skill_ids[i]):
+			active_skills[i] = SkillCatalog.create_skill(skill_ids[i], player, self)
+			if active_skills[i]:
+				print("设置初始技能槽 ", i, ": ", active_skills[i].skill_name)
 
 # 🔄 技能切换函数
 func swap_skill(slot_index: int, new_skill_id: String) -> bool:
@@ -72,18 +48,20 @@ func swap_skill(slot_index: int, new_skill_id: String) -> bool:
 	if slot_index < 0 or slot_index >= 4:
 		return false
 	
-	if new_skill_id in all_skill_classes:
+	if SkillCatalog.has_skill(new_skill_id):
 		var old_skill = active_skills[slot_index]
-		var skill_script_path = all_skill_classes[new_skill_id]
-		var skill_script = load(skill_script_path)
-		active_skills[slot_index] = skill_script.new(player, self)
-		print("技能槽 ", slot_index, " 从 ", (old_skill.skill_name if old_skill else "空"), " 切换到 ", active_skills[slot_index].skill_name)
+		active_skills[slot_index] = SkillCatalog.create_skill(new_skill_id, player, self)
+		if not active_skills[slot_index]:
+			return false
+		var old_skill_name = str(old_skill.skill_name) if old_skill else "空"
+		print("技能槽 ", slot_index, " 从 ", old_skill_name, " 切换到 ", active_skills[slot_index].skill_name)
 		return true
 	elif new_skill_id == "":
 		# 移除技能
 		var old_skill = active_skills[slot_index]
 		active_skills[slot_index] = null
-		print("移除技能槽 ", slot_index, " 的技能: ", (old_skill.skill_name if old_skill else "空"))
+		var old_skill_name = str(old_skill.skill_name) if old_skill else "空"
+		print("移除技能槽 ", slot_index, " 的技能: ", old_skill_name)
 		return true
 	
 	return false
@@ -109,10 +87,10 @@ func get_active_skill_info(slot_index: int) -> Dictionary:
 
 func get_skill_info_by_id(skill_id: String) -> Dictionary:
 	"""通过技能ID获取技能信息"""
-	if skill_id in all_skill_classes:
-		var skill_script_path = all_skill_classes[skill_id]
-		var skill_script = load(skill_script_path)
-		var temp_skill = skill_script.new(player, self)
+	if SkillCatalog.has_skill(skill_id):
+		var temp_skill = SkillCatalog.create_skill(skill_id, player, self)
+		if not temp_skill:
+			return {}
 		return {
 			"name": temp_skill.skill_name,
 			"cooldown": temp_skill.cooldown,
@@ -173,14 +151,14 @@ func get_all_available_skills() -> Dictionary:
 func get_unowned_skills() -> Array[String]:
 	"""获取玩家未拥有的技能ID列表"""
 	var unowned: Array[String] = []
-	for skill_id in all_skill_classes.keys():
+	for skill_id in SkillCatalog.get_skill_ids():
 		if skill_id not in owned_skills:
 			unowned.append(skill_id)
 	return unowned
 
 func add_skill_to_library(skill_id: String) -> bool:
 	"""将技能添加到玩家的技能库"""
-	if skill_id in all_skill_classes and skill_id not in owned_skills:
+	if SkillCatalog.has_skill(skill_id) and skill_id not in owned_skills:
 		owned_skills.append(skill_id)
 		print("🎁 获得新技能: ", skill_id)
 		return true

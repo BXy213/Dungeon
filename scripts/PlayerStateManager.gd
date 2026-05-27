@@ -1,5 +1,7 @@
-class_name PlayerStateManager
+﻿class_name PlayerStateManager
 extends Node
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🎮 玩家状态管理器 - 处理技能选择和释放的状态机
 
@@ -29,12 +31,14 @@ signal skill_cast_requested(skill, target_position: Vector2, target_node: Node)
 func _init(p_player: Node = null):
 	player = p_player
 	if player:
-		skill_manager = player.get_node_or_null("SkillManager")
+		skill_manager = player.get_node_or_null(Constants.NODE_SKILL_MANAGER)
 		# 技能指示器在场景中查找
 		call_deferred("find_skill_indicator")
 
 func find_skill_indicator():
-	skill_indicator = player.get_tree().current_scene.get_node_or_null("SkillIndicator")
+	if not player or not is_instance_valid(player):
+		return
+	skill_indicator = player.get_tree().current_scene.get_node_or_null(Constants.NODE_SKILL_INDICATOR)
 
 ## ========== 状态转换方法 ==========
 

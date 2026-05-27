@@ -1,4 +1,6 @@
-extends Button
+﻿extends Button
+
+const Constants = preload("res://scripts/core/GameConstants.gd")
 
 var player = null
 var skill_manager = null
@@ -9,9 +11,9 @@ func _ready() -> void:
 	call_deferred("initialize_references")
 
 func initialize_references() -> void:
-	player = get_tree().get_first_node_in_group("players")
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
-		skill_manager = player.get_node_or_null("SkillManager")
+		skill_manager = player.get_node_or_null(Constants.NODE_SKILL_MANAGER)
 
 func _pressed() -> void:
 	if player and skill_manager:
