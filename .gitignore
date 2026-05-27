@@ -1,3 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Codex project-context-maintainer local files
+/.codex/
+/AGENTS.md
+/docs/PROJECT_CONTEXT.md
+/docs/PROJECT_SNAPSHOT.md
