@@ -1,7 +1,6 @@
 ﻿extends Node
 
 const SkillCatalog = preload("res://scripts/registries/SkillRegistry.gd")
-const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🎯 重构后的技能管理器 - 基于技能类的新架构
 

@@ -1,7 +1,6 @@
 ﻿extends Area2D
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
-const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 @export var speed: float = 400.0
 @export var life_time: float = 2.0

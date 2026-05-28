@@ -1,7 +1,6 @@
 ﻿extends Node
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
-const DebugLog = preload("res://scripts/core/DebugLog.gd")
 const Styles = preload("res://scripts/ui/UIStyleFactory.gd")
 
 @export var enable_verbose_logs: bool = true

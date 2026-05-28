@@ -1,7 +1,6 @@
 ﻿extends "res://scripts/CharacterBase.gd"
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
-const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🎮 玩家角色类 - 基于新架构的玩家实现
 

@@ -2,7 +2,6 @@
 extends CharacterBase
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
-const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🦹 敌人角色基类 - 继承自CharacterBase，提供敌人通用功能
 
