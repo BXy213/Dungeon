@@ -10,6 +10,7 @@ var in_range: bool = true
 var skill_radius: float = 0.0  # 技能作用范围半径（通用）
 var highlighted_enemy: Node = null  # 当前高亮的敌人
 var highlight_mask: Node = null  # 当前高亮mask节点
+var player: Node = null
 
 # 🎯 射程限制相关
 var clamped_position: Vector2 = Vector2.ZERO  # 被限制后的准心位置
@@ -17,6 +18,7 @@ var has_range_limit: bool = false  # 是否有射程限制
 
 func _ready() -> void:
 	visible = false
+	set_process(false)
 
 func show_indicator(skill_info: Dictionary) -> void:
 	skill_range = skill_info.get("range", 0.0)
@@ -26,34 +28,39 @@ func show_indicator(skill_info: Dictionary) -> void:
 	has_range_limit = skill_range > 0.0  # 射程大于0表示有限制
 	is_active = true
 	visible = true
+	player = _get_player()
+	set_process(true)
+	queue_redraw()
 
 func hide_indicator() -> void:
 	is_active = false
 	visible = false
+	set_process(false)
 	
 	# 清除敌人高亮
 	if highlighted_enemy and is_instance_valid(highlighted_enemy):
 		remove_enemy_highlight(highlighted_enemy)
 	highlighted_enemy = null
 	highlight_mask = null
+	queue_redraw()
 
 func _process(_delta: float) -> void:
 	if not is_active:
 		return
 	
-	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
-	if not player:
+	var active_player = _get_player()
+	if not active_player:
 		return
 	
 	var mouse_position = get_global_mouse_position()
 	
 	# 🎯 计算受射程限制的准心位置
 	if has_range_limit:
-		clamped_position = clamp_position_to_range(mouse_position, player.global_position, skill_range)
+		clamped_position = clamp_position_to_range(mouse_position, active_player.global_position, skill_range)
 		global_position = clamped_position
 		
 		# 检查是否在射程内
-		var distance = clamped_position.distance_to(player.global_position)
+		var distance = clamped_position.distance_to(active_player.global_position)
 		in_range = distance <= skill_range
 	else:
 		# 无射程限制，直接跟随鼠标
@@ -81,6 +88,12 @@ func _process(_delta: float) -> void:
 	# 重绘指示器
 	queue_redraw()
 
+func _get_player() -> Node:
+	if player and is_instance_valid(player):
+		return player
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
+	return player
+
 func clamp_position_to_range(mouse_pos: Vector2, player_pos: Vector2, max_range: float) -> Vector2:
 	"""将位置限制在射程范围内"""
 	var direction = mouse_pos - player_pos
@@ -106,7 +119,7 @@ func find_enemy_at_cursor(tolerance: float = 50.0) -> Node:
 	var closest_distance = tolerance
 	
 	for enemy in enemies:
-		if enemy.visible and enemy.get_parent().get_parent().visible:
+		if _is_enemy_targetable(enemy):
 			var distance = mouse_pos.distance_to(enemy.global_position)
 			if distance < closest_distance:
 				closest_distance = distance
@@ -114,13 +127,22 @@ func find_enemy_at_cursor(tolerance: float = 50.0) -> Node:
 	
 	return closest_enemy
 
+func _is_enemy_targetable(enemy: Node) -> bool:
+	if not enemy or not is_instance_valid(enemy):
+		return false
+	if not enemy.visible:
+		return false
+	var parent = enemy.get_parent()
+	var room = parent.get_parent() if parent else null
+	return room == null or room.visible
+
 func add_enemy_highlight(enemy: Node) -> void:
 	"""为敌人添加高亮效果（使用mask层）"""
 	if not enemy:
 		return
 	
 	var sprite = enemy.get_node_or_null("Sprite2D")
-	if not sprite:
+	if not sprite or not sprite.texture:
 		return
 	
 	# 创建高亮mask层
@@ -142,7 +164,7 @@ func add_enemy_highlight(enemy: Node) -> void:
 	enemy.add_child(highlight_mask)
 	
 	var enemy_name = str(enemy.character_name) if "character_name" in enemy else str(enemy.name)
-	print("🎯 为敌人添加高亮mask: ", enemy_name)
+	DebugLog.debug(["🎯 为敌人添加高亮mask: ", enemy_name], DebugLog.CATEGORY_SKILL)
 
 func remove_enemy_highlight(enemy: Node) -> void:
 	"""移除敌人的高亮效果（删除mask层）"""
@@ -154,7 +176,7 @@ func remove_enemy_highlight(enemy: Node) -> void:
 	if mask:
 		mask.queue_free()
 		var enemy_name = str(enemy.character_name) if "character_name" in enemy else str(enemy.name)
-		print("🎯 移除敌人高亮mask: ", enemy_name)
+		DebugLog.debug(["🎯 移除敌人高亮mask: ", enemy_name], DebugLog.CATEGORY_SKILL)
 	
 	highlight_mask = null
 
@@ -162,13 +184,13 @@ func _draw() -> void:
 	if not is_active:
 		return
 	
-	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
-	if not player:
+	var active_player = _get_player()
+	if not active_player:
 		return
 	
 	# 🎯 绘制射程限制圆圈（以玩家为中心）
 	if has_range_limit:
-		var player_screen_pos = player.global_position - global_position  # 玩家相对于准心的位置
+		var player_screen_pos = active_player.global_position - global_position  # 玩家相对于准心的位置
 		var range_color = Color(skill_color.r, skill_color.g, skill_color.b, 0.15)
 		var range_border_color = Color(skill_color.r, skill_color.g, skill_color.b, 0.4)
 		

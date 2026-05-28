@@ -30,7 +30,7 @@ func _ready() -> void:
 	# 添加到拾取物组
 	add_to_group(Constants.GROUP_PICKUPS)
 	
-	print("🔑 银钥匙已生成，位置: ", global_position)
+	DebugLog.debug(["🔑 银钥匙已生成，位置: ", global_position], DebugLog.CATEGORY_PICKUP)
 
 ## ========== 物理处理 ==========
 
@@ -39,13 +39,17 @@ func _physics_process(_delta: float) -> void:
 		return
 	
 	# 检测附近的玩家
-	if not player:
-		player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
+	player = _get_player()
 	
-	if player and is_instance_valid(player):
-		var distance = global_position.distance_to(player.global_position)
-		if distance <= pickup_distance:
+	if player:
+		if global_position.distance_squared_to(player.global_position) <= pickup_distance * pickup_distance:
 			pickup_by_player(player)
+
+func _get_player() -> Node:
+	if player and is_instance_valid(player):
+		return player
+	player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
+	return player
 
 ## ========== 拾取逻辑 ==========
 
@@ -63,13 +67,14 @@ func pickup_by_player(picked_player: Node) -> void:
 		return
 	
 	is_picked_up = true
+	set_physics_process(false)
 	
 	# 调用玩家的添加银钥匙方法
 	if picked_player.has_method("add_silver_key"):
 		picked_player.add_silver_key(1)
-		print("🔑 玩家拾取银钥匙！位置: ", global_position)
+		DebugLog.info(["🔑 玩家拾取银钥匙！位置: ", global_position], DebugLog.CATEGORY_PICKUP)
 	else:
-		print("⚠️ 玩家没有add_silver_key方法！")
+		DebugLog.warning(["玩家没有add_silver_key方法"], DebugLog.CATEGORY_PICKUP)
 	
 	# 播放拾取动画（简单的缩放消失效果）
 	play_pickup_animation()

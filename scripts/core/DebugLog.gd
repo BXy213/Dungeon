@@ -17,6 +17,9 @@ const CATEGORY_COMBAT := "combat"
 const CATEGORY_SKILL := "skill"
 const CATEGORY_AI := "ai"
 const CATEGORY_PLAYER := "player"
+const CATEGORY_PICKUP := "pickup"
+const CATEGORY_INTERACTION := "interaction"
+const CATEGORY_BUFF := "buff"
 
 static var gameplay_enabled: bool = false
 static var minimum_level: int = Level.DEBUG

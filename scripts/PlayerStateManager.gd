@@ -46,7 +46,7 @@ func transition_to_state(new_state: PlayerState) -> void:
 	"""状态转换"""
 	var old_state = current_state
 	current_state = new_state
-	print("🎮 玩家状态: ", PlayerState.keys()[old_state], " → ", PlayerState.keys()[new_state])
+	DebugLog.debug(["🎮 玩家状态: ", PlayerState.keys()[old_state], " → ", PlayerState.keys()[new_state]], DebugLog.CATEGORY_PLAYER)
 	state_changed.emit(old_state, new_state)
 
 func try_select_skill(slot_index: int) -> bool:
@@ -56,7 +56,7 @@ func try_select_skill(slot_index: int) -> bool:
 		
 	var skill = skill_manager.get_skill_instance(slot_index)
 	if not skill:
-		print("技能槽 ", slot_index + 1, " 为空！")
+		DebugLog.info(["技能槽 ", slot_index + 1, " 为空"], DebugLog.CATEGORY_SKILL)
 		return false
 	
 	if not skill.can_cast():
@@ -83,7 +83,7 @@ func try_select_skill(slot_index: int) -> bool:
 
 func handle_auto_cast_skill() -> void:
 	"""处理自动释放技能"""
-	print("🚀 自动释放技能: ", selected_skill.skill_name)
+	DebugLog.debug(["🚀 自动释放技能: ", selected_skill.skill_name], DebugLog.CATEGORY_SKILL)
 	
 	# ✅ AUTO_CAST技能直接释放
 	if selected_skill.can_cast():
@@ -96,7 +96,7 @@ func handle_auto_cast_skill() -> void:
 		call_deferred("finish_skill_cast")
 	else:
 		# 无法释放（冷却中或魔法不足），取消选择
-		print("  ❌ 无法释放技能")
+		DebugLog.info(["无法释放技能"], DebugLog.CATEGORY_SKILL)
 		cancel_skill_selection()
 
 func enter_skill_targeting_state() -> void:
@@ -143,17 +143,17 @@ func try_cast_skill(target_position: Vector2, target_node: Node = null) -> bool:
 	var actual_target_position = target_position
 	if skill_indicator and skill_indicator.has_method("get_clamped_position"):
 		actual_target_position = skill_indicator.get_clamped_position()
-		print("🎯 使用受限制的目标位置: ", actual_target_position, " (原鼠标位置: ", target_position, ")")
+		DebugLog.debug(["🎯 使用受限制的目标位置: ", actual_target_position, " (原鼠标位置: ", target_position, ")"], DebugLog.CATEGORY_SKILL)
 	
 	# 检查技能特定的释放条件
 	if not can_cast_at_target(actual_target_position, target_node):
 		# 对于精准射击，无目标时取消技能
 		if selected_skill.cast_type == 2:  # SkillBase.SkillCastType.TARGET_ENEMY
-			print("🎯 无有效目标，取消技能")
+			DebugLog.info(["🎯 无有效目标，取消技能"], DebugLog.CATEGORY_SKILL)
 			cancel_skill_selection()
 			return false
 		else:
-			print("❌ 无法在此位置释放技能")
+			DebugLog.info(["无法在此位置释放技能"], DebugLog.CATEGORY_SKILL)
 			return false
 	
 	# 释放技能
@@ -164,7 +164,7 @@ func try_cast_skill(target_position: Vector2, target_node: Node = null) -> bool:
 	var success = selected_skill.cast_skill(actual_target_position, target_node)
 	
 	if success:
-		print("✅ 技能释放成功: ", selected_skill.skill_name)
+		DebugLog.info(["✅ 技能释放成功: ", selected_skill.skill_name], DebugLog.CATEGORY_SKILL)
 	
 	# 释放完成，返回空闲状态
 	call_deferred("finish_skill_cast")
@@ -178,7 +178,7 @@ func can_cast_at_target(target_position: Vector2, _target_node: Node) -> bool:
 	
 	# 检查射程
 	if not selected_skill.is_position_in_range(target_position):
-		print("📏 目标超出技能射程")
+		DebugLog.info(["📏 目标超出技能射程"], DebugLog.CATEGORY_SKILL)
 		return false
 	
 	# 根据技能类型检查特定条件
