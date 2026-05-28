@@ -1,6 +1,8 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name EliteEnemy
 
+const ELITE_TEXTURE = preload("res://art/enemies/enemy_elite.png")
+
 # 🛡️ 精英战士 - 预测性攻击，毒技能
 
 ## ========== 精英战士特有属性 ==========
@@ -65,10 +67,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var elite_sprite = Sprite2D.new()
 	elite_sprite.name = "Sprite2D"
-	elite_sprite.texture = preload("res://art/icon.webp")
-	elite_sprite.modulate = Color.ORANGE  # 橙色
-	elite_sprite.scale = Vector2(0.52, 0.52)
+	elite_sprite.texture = ELITE_TEXTURE
+	elite_sprite.modulate = Color.WHITE
+	elite_sprite.scale = Vector2.ONE
 	add_child(elite_sprite)
+	sprite = elite_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -89,8 +92,11 @@ func setup_visuals() -> void:
 	"""设置精英战士视觉效果"""
 	var elite_sprite = get_node_or_null("Sprite2D")
 	if elite_sprite:
-		elite_sprite.modulate = Color.ORANGE  # 橙色
-		print("  ✓ 精英战士贴图颜色已设置为橙色")
+		elite_sprite.texture = ELITE_TEXTURE
+		elite_sprite.modulate = Color.WHITE
+		elite_sprite.scale = Vector2.ONE
+		sprite = elite_sprite
+		print("  ✓ 精英战士贴图已设置")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

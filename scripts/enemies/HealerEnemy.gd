@@ -1,6 +1,8 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name HealerEnemy
 
+const HEALER_TEXTURE = preload("res://art/enemies/enemy_healer.png")
+
 # 💚 治疗者 - 给其他敌人治疗（参考LOL索拉卡/DOTA巫医）
 
 ## ========== 治疗者特有属性 ==========
@@ -78,10 +80,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var healer_sprite = Sprite2D.new()
 	healer_sprite.name = "Sprite2D"
-	healer_sprite.texture = preload("res://art/icon.webp")
-	healer_sprite.modulate = Color(0.0, 1.0, 0.5)  # 青绿色
-	healer_sprite.scale = Vector2(0.35, 0.35)  # 稍小
+	healer_sprite.texture = HEALER_TEXTURE
+	healer_sprite.modulate = Color.WHITE
+	healer_sprite.scale = Vector2.ONE
 	add_child(healer_sprite)
+	sprite = healer_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -103,8 +106,11 @@ func setup_visuals() -> void:
 	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var healer_sprite = get_node_or_null("Sprite2D")
 	if healer_sprite:
-		healer_sprite.modulate = Color(0.0, 1.0, 0.5)  # 青绿色
-		print("  ✓ 治疗者贴图颜色已设置为青绿色, visible: ", healer_sprite.visible, ", scale: ", healer_sprite.scale)
+		healer_sprite.texture = HEALER_TEXTURE
+		healer_sprite.modulate = Color.WHITE
+		healer_sprite.scale = Vector2.ONE
+		sprite = healer_sprite
+		print("  ✓ 治疗者贴图已设置, visible: ", healer_sprite.visible, ", scale: ", healer_sprite.scale)
 	else:
 		print("  ⚠️ 治疗者setup_visuals()时Sprite2D不存在！")
 

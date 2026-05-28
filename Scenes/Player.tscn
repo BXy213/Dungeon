@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cfvu6gv7cs27c" path="res://scripts/PlayerCharacter.gd" id="1_kne1u"]
 [ext_resource type="Script" uid="uid://roc6gvwc8go2" path="res://scripts/SkillManager.gd" id="1_xhfnw"]
-[ext_resource type="Texture2D" uid="uid://bqe4pmj4fr7pf" path="res://art/icon.webp" id="2_e80uo"]
+[ext_resource type="Texture2D" uid="uid://cw61uxb817e66" path="res://art/charwalk.png" id="2_e80uo"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cxr5p"]
 size = Vector2(40, 40)
@@ -12,8 +12,9 @@ collision_layer = 2
 script = ExtResource("1_kne1u")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.4, 0.4)
 texture = ExtResource("2_e80uo")
+hframes = 4
+vframes = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0.5, 2)

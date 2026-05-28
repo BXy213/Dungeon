@@ -2,6 +2,7 @@
 class_name BossEnemy
 
 const EnemyTypes = preload("res://scripts/factories/EnemyFactory.gd")
+const BOSS_TEXTURE = preload("res://art/enemies/enemy_boss.png")
 # 👑 BOSS - 保持距离，召唤小兵，战术移动
 
 ## ========== BOSS特有属性 ==========
@@ -74,10 +75,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var boss_sprite = Sprite2D.new()
 	boss_sprite.name = "Sprite2D"
-	boss_sprite.texture = preload("res://art/icon.webp")
-	boss_sprite.modulate = Color.PURPLE  # 紫色
-	boss_sprite.scale = Vector2(0.72, 0.72)
+	boss_sprite.texture = BOSS_TEXTURE
+	boss_sprite.modulate = Color.WHITE
+	boss_sprite.scale = Vector2.ONE
 	add_child(boss_sprite)
+	sprite = boss_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -98,8 +100,11 @@ func setup_visuals() -> void:
 	"""设置BOSS视觉效果"""
 	var boss_sprite = get_node_or_null("Sprite2D")
 	if boss_sprite:
-		boss_sprite.modulate = Color.PURPLE  # 紫色
-		print("  ✓ BOSS贴图颜色已设置为紫色")
+		boss_sprite.texture = BOSS_TEXTURE
+		boss_sprite.modulate = Color.WHITE
+		boss_sprite.scale = Vector2.ONE
+		sprite = boss_sprite
+		print("  ✓ BOSS贴图已设置")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

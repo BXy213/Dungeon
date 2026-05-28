@@ -1,6 +1,8 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name RangedEnemy
 
+const RANGED_TEXTURE = preload("res://art/enemies/enemy_ranged.png")
+
 # 🏹 远程小兵 - 保持距离射击并游走
 
 ## ========== 远程小兵特有属性 ==========
@@ -70,10 +72,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var ranged_sprite = Sprite2D.new()
 	ranged_sprite.name = "Sprite2D"
-	ranged_sprite.texture = preload("res://art/icon.webp")
-	ranged_sprite.modulate = Color.BLUE  # 蓝色
-	ranged_sprite.scale = Vector2(0.36, 0.36)
+	ranged_sprite.texture = RANGED_TEXTURE
+	ranged_sprite.modulate = Color.WHITE
+	ranged_sprite.scale = Vector2.ONE
 	add_child(ranged_sprite)
+	sprite = ranged_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -94,8 +97,11 @@ func setup_visuals() -> void:
 	"""设置远程小兵视觉效果"""
 	var ranged_sprite = get_node_or_null("Sprite2D")
 	if ranged_sprite:
-		ranged_sprite.modulate = Color.BLUE  # 蓝色
-		print("  ✓ 远程小兵贴图颜色已设置为蓝色")
+		ranged_sprite.texture = RANGED_TEXTURE
+		ranged_sprite.modulate = Color.WHITE
+		ranged_sprite.scale = Vector2.ONE
+		sprite = ranged_sprite
+		print("  ✓ 远程小兵贴图已设置")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

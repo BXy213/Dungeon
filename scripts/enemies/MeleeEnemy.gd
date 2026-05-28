@@ -1,6 +1,8 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name MeleeEnemy
 
+const MELEE_TEXTURE = preload("res://art/enemies/enemy_melee.png")
+
 # 🗡️ 近战小兵 - 冲锋射击
 
 ## ========== 近战小兵特有属性 ==========
@@ -57,10 +59,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var melee_sprite = Sprite2D.new()
 	melee_sprite.name = "Sprite2D"
-	melee_sprite.texture = preload("res://art/icon.webp")
-	melee_sprite.modulate = Color.RED  # 红色
-	melee_sprite.scale = Vector2(0.4, 0.4)
+	melee_sprite.texture = MELEE_TEXTURE
+	melee_sprite.modulate = Color.WHITE
+	melee_sprite.scale = Vector2.ONE
 	add_child(melee_sprite)
+	sprite = melee_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -81,8 +84,11 @@ func setup_visuals() -> void:
 	"""设置近战小兵视觉效果"""
 	var melee_sprite = get_node_or_null("Sprite2D")
 	if melee_sprite:
-		melee_sprite.modulate = Color.RED  # 红色
-		print("  ✓ 近战小兵贴图颜色已设置为红色")
+		melee_sprite.texture = MELEE_TEXTURE
+		melee_sprite.modulate = Color.WHITE
+		melee_sprite.scale = Vector2.ONE
+		sprite = melee_sprite
+		print("  ✓ 近战小兵贴图已设置")
 
 func setup_collision_size() -> void:
 	"""设置碰撞盒大小"""

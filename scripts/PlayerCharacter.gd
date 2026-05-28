@@ -4,6 +4,14 @@ const Constants = preload("res://scripts/core/GameConstants.gd")
 
 # 🎮 玩家角色类 - 基于新架构的玩家实现
 
+const WALK_FRAME_COUNT = 4
+const WALK_ANIMATION_FPS = 8.0
+const WALK_DIRECTION_DOWN = 0
+const WALK_DIRECTION_LEFT = 1
+const WALK_DIRECTION_UP = 2
+const WALK_DIRECTION_RIGHT = 3
+const WALK_IDLE_FRAME = 0
+
 ## ========== 玩家特有属性 ==========
 
 @export var experience: int = 0
@@ -19,6 +27,12 @@ var skill_indicator: Node2D  # 技能指示器
 
 # 相机系统
 @onready var camera = $Camera2D
+@onready var player_sprite: Sprite2D = $Sprite2D
+
+# charwalk.png uses columns for directions and rows for walk frames.
+var walk_frame_index: int = WALK_IDLE_FRAME
+var walk_frame_timer: float = 0.0
+var facing_direction: int = WALK_DIRECTION_DOWN
 
 ## ========== 信号 ==========
 
@@ -52,6 +66,7 @@ func post_ready_setup() -> void:
 	
 	# 设置技能管理器
 	skill_manager = get_node_or_null(Constants.NODE_SKILL_MANAGER)
+	setup_walk_sprite()
 	
 	# 初始化状态管理器
 	setup_state_manager()
@@ -64,6 +79,14 @@ func post_ready_setup() -> void:
 	add_to_group(Constants.GROUP_PLAYERS)
 	
 	print("🎮 玩家角色初始化完成")
+
+func setup_walk_sprite() -> void:
+	if not player_sprite:
+		return
+
+	player_sprite.hframes = WALK_FRAME_COUNT
+	player_sprite.vframes = WALK_FRAME_COUNT
+	player_sprite.frame_coords = Vector2i(facing_direction, WALK_IDLE_FRAME)
 
 func setup_state_manager() -> void:
 	"""设置玩家状态管理器"""
@@ -139,12 +162,45 @@ func handle_movement(_delta: float) -> void:
 	
 	# 应用移动
 	velocity = input_vector * current_speed
+	update_walk_animation(_delta, input_vector)
 	
 	# 更新状态
 	if velocity.length() > 0:
 		change_state(CharacterState.MOVING)
 	else:
 		change_state(CharacterState.IDLE)
+
+func update_walk_animation(delta: float, input_vector: Vector2) -> void:
+	if not player_sprite:
+		return
+
+	if input_vector == Vector2.ZERO:
+		walk_frame_timer = 0.0
+		walk_frame_index = WALK_IDLE_FRAME
+		player_sprite.frame_coords = Vector2i(facing_direction, WALK_IDLE_FRAME)
+		return
+
+	update_facing_direction(input_vector)
+	walk_frame_timer += delta
+
+	var frame_time = 1.0 / WALK_ANIMATION_FPS
+	while walk_frame_timer >= frame_time:
+		walk_frame_timer -= frame_time
+		walk_frame_index = (walk_frame_index + 1) % WALK_FRAME_COUNT
+
+	player_sprite.frame_coords = Vector2i(facing_direction, walk_frame_index)
+
+func update_facing_direction(input_vector: Vector2) -> void:
+	if abs(input_vector.x) > abs(input_vector.y):
+		if input_vector.x < 0:
+			facing_direction = WALK_DIRECTION_LEFT
+		else:
+			facing_direction = WALK_DIRECTION_RIGHT
+	else:
+		if input_vector.y < 0:
+			facing_direction = WALK_DIRECTION_UP
+		else:
+			facing_direction = WALK_DIRECTION_DOWN
 
 ## ========== 攻击系统重写 ==========
 

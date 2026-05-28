@@ -1,6 +1,8 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name BomberEnemy
 
+const BOMBER_TEXTURE = preload("res://art/enemies/enemy_bomber.png")
+
 # 💣 自爆兵 - 死亡时爆炸（参考DOTA特克斯/LOL炼金男爵虫子）
 
 ## ========== 自爆兵特有属性 ==========
@@ -69,10 +71,11 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点（发光效果）
 	var bomber_sprite = Sprite2D.new()
 	bomber_sprite.name = "Sprite2D"
-	bomber_sprite.texture = preload("res://art/icon.webp")
-	bomber_sprite.modulate = Color(1.0, 0.5, 0.0)  # 橙色，像炸弹
-	bomber_sprite.scale = Vector2(0.35, 0.35)
+	bomber_sprite.texture = BOMBER_TEXTURE
+	bomber_sprite.modulate = Color.WHITE
+	bomber_sprite.scale = Vector2.ONE
 	add_child(bomber_sprite)
+	sprite = bomber_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 添加脉冲动画（像定时炸弹）
@@ -100,8 +103,11 @@ func setup_visuals() -> void:
 	# ✅ 修复：确保贴图颜色正确设置（即使Sprite2D预先存在）
 	var bomber_sprite = get_node_or_null("Sprite2D")
 	if bomber_sprite:
-		bomber_sprite.modulate = Color(1.0, 0.5, 0.0)  # 橙色
-		print("  ✓ 自爆兵贴图颜色已设置为橙色, visible: ", bomber_sprite.visible, ", scale: ", bomber_sprite.scale)
+		bomber_sprite.texture = BOMBER_TEXTURE
+		bomber_sprite.modulate = Color.WHITE
+		bomber_sprite.scale = Vector2.ONE
+		sprite = bomber_sprite
+		print("  ✓ 自爆兵贴图已设置, visible: ", bomber_sprite.visible, ", scale: ", bomber_sprite.scale)
 		
 		# 重新创建脉冲动画
 		var tween = create_tween()

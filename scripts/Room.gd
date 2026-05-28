@@ -5,6 +5,8 @@ const EnemyTypes = preload("res://scripts/factories/EnemyFactory.gd")
 const Constants = preload("res://scripts/core/GameConstants.gd")
 const SpawnPlanner = preload("res://scripts/rooms/EnemySpawnPlanner.gd")
 const SaveCodec = preload("res://scripts/rooms/RoomSaveCodec.gd")
+const FLOOR_TEXTURE = preload("res://art/environment/dungeon_floor_stone.png")
+const WALL_TEXTURE = preload("res://art/environment/dungeon_wall_stone.png")
 
 const START_ROOM_ID := Vector2i(0, 0)
 const DEFAULT_DUNGEON_SIZE := Vector2i(5, 5)
@@ -417,12 +419,19 @@ func get_valid_spawn_position(spawn_area: Rect2) -> Vector2:
 	# 如果找不到合适位置，返回中心点
 	return spawn_area.get_center()
 
+func create_tiled_texture_rect(texture: Texture2D, rect_size: Vector2, z_layer: int) -> TextureRect:
+	var texture_rect = TextureRect.new()
+	texture_rect.texture = texture
+	texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture_rect.stretch_mode = TextureRect.STRETCH_TILE
+	texture_rect.size = rect_size
+	texture_rect.z_index = z_layer
+	texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return texture_rect
+
 func create_room_background() -> void:
-	# 创建房间背景
-	var room_background = ColorRect.new()
-	room_background.size = room_size
-	room_background.color = Color(0.2, 0.3, 0.25, 1.0)  # 深绿色背景
-	room_background.z_index = -10  # 确保在最底层
+	var room_background = create_tiled_texture_rect(FLOOR_TEXTURE, room_size, -10)
+	room_background.name = "RoomBackground"
 	add_child(room_background)
 	move_child(room_background, 0)  # 移到最前面（最底层）
 
@@ -590,43 +599,30 @@ func create_room_walls_based_on_connections() -> void:
 
 func create_room_border() -> void:
 	"""创建房间边界线（视觉效果）"""
-	var border_color = Color(0.4, 0.4, 0.5, 0.8)
-	var border_width = 4
+	var border_width = 8
 	
 	# 顶边
-	var top_border = ColorRect.new()
+	var top_border = create_tiled_texture_rect(WALL_TEXTURE, Vector2(room_size.x, border_width), -7)
 	top_border.name = "TopBorder"
-	top_border.color = border_color
-	top_border.size = Vector2(room_size.x, border_width)
 	top_border.position = Vector2(0, 0)
-	top_border.z_index = -7
 	add_child(top_border)
 	
 	# 底边
-	var bottom_border = ColorRect.new()
+	var bottom_border = create_tiled_texture_rect(WALL_TEXTURE, Vector2(room_size.x, border_width), -7)
 	bottom_border.name = "BottomBorder"
-	bottom_border.color = border_color
-	bottom_border.size = Vector2(room_size.x, border_width)
 	bottom_border.position = Vector2(0, room_size.y - border_width)
-	bottom_border.z_index = -7
 	add_child(bottom_border)
 	
 	# 左边
-	var left_border = ColorRect.new()
+	var left_border = create_tiled_texture_rect(WALL_TEXTURE, Vector2(border_width, room_size.y), -7)
 	left_border.name = "LeftBorder"
-	left_border.color = border_color
-	left_border.size = Vector2(border_width, room_size.y)
 	left_border.position = Vector2(0, 0)
-	left_border.z_index = -7
 	add_child(left_border)
 	
 	# 右边
-	var right_border = ColorRect.new()
+	var right_border = create_tiled_texture_rect(WALL_TEXTURE, Vector2(border_width, room_size.y), -7)
 	right_border.name = "RightBorder"
-	right_border.color = border_color
-	right_border.size = Vector2(border_width, room_size.y)
 	right_border.position = Vector2(room_size.x - border_width, 0)
-	right_border.z_index = -7
 	add_child(right_border)
 
 func create_room_walls() -> void:
@@ -704,10 +700,7 @@ func create_wall_segment(wall_pos: Vector2, wall_size: Vector2) -> void:
 	wall.add_child(collision)
 	
 	# 创建视觉效果
-	var wall_visual = ColorRect.new()
-	wall_visual.size = wall_size
-	wall_visual.color = Color(0.3, 0.3, 0.35, 1.0)  # 深灰色墙体
-	wall_visual.z_index = -6
+	var wall_visual = create_tiled_texture_rect(WALL_TEXTURE, wall_size, -6)
 	wall.add_child(wall_visual)
 	
 	add_child(wall)

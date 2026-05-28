@@ -1,6 +1,9 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name SplitterEnemy
 
+const SPLITTER_TEXTURE = preload("res://art/enemies/enemy_splitter.png")
+const MINI_SPLITTER_TEXTURE = preload("res://art/enemies/enemy_mini_splitter.png")
+
 # 🔀 分裂体 - 死亡时分裂成小型敌人（参考DOTA育母蜘蛛/LOL玛尔扎哈虫子）
 
 ## ========== 分裂体特有属性 ==========
@@ -112,16 +115,16 @@ func setup_enemy_nodes() -> void:
 	# 创建Sprite2D节点
 	var splitter_sprite = Sprite2D.new()
 	splitter_sprite.name = "Sprite2D"
-	splitter_sprite.texture = preload("res://art/icon.webp")
 	
 	if is_mini_split:
-		splitter_sprite.modulate = Color(0.6, 0.3, 0.6)  # 浅紫色
-		splitter_sprite.scale = Vector2(0.25, 0.25)  # 小型
+		splitter_sprite.texture = MINI_SPLITTER_TEXTURE
 	else:
-		splitter_sprite.modulate = Color(0.8, 0.2, 0.8)  # 紫色
-		splitter_sprite.scale = Vector2(0.4, 0.4)
+		splitter_sprite.texture = SPLITTER_TEXTURE
+	splitter_sprite.modulate = Color.WHITE
+	splitter_sprite.scale = Vector2.ONE
 	
 	add_child(splitter_sprite)
+	sprite = splitter_sprite
 	print("  ✓ Sprite2D已创建")
 	
 	# 创建CollisionShape2D节点
@@ -149,11 +152,14 @@ func setup_visuals() -> void:
 	var splitter_sprite = get_node_or_null("Sprite2D")
 	if splitter_sprite:
 		if is_mini_split:
-			splitter_sprite.modulate = Color(0.6, 0.3, 0.6)  # 浅紫色
-			print("  ✓ 小分裂体贴图颜色已设置为浅紫色, visible: ", splitter_sprite.visible, ", scale: ", splitter_sprite.scale)
+			splitter_sprite.texture = MINI_SPLITTER_TEXTURE
+			print("  ✓ 小分裂体贴图已设置, visible: ", splitter_sprite.visible, ", scale: ", splitter_sprite.scale)
 		else:
-			splitter_sprite.modulate = Color(0.8, 0.2, 0.8)  # 紫色
-			print("  ✓ 分裂体贴图颜色已设置为紫色, visible: ", splitter_sprite.visible, ", scale: ", splitter_sprite.scale)
+			splitter_sprite.texture = SPLITTER_TEXTURE
+			print("  ✓ 分裂体贴图已设置, visible: ", splitter_sprite.visible, ", scale: ", splitter_sprite.scale)
+		splitter_sprite.modulate = Color.WHITE
+		splitter_sprite.scale = Vector2.ONE
+		sprite = splitter_sprite
 	else:
 		var type_name = "小分裂体" if is_mini_split else "分裂体"
 		print("  ⚠️ ", type_name, "setup_visuals()时Sprite2D不存在！")

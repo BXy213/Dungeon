@@ -1,5 +1,7 @@
 extends StaticBody2D
 
+const DEFAULT_OBSTACLE_TEXTURE = preload("res://art/environment/dungeon_obstacle_rubble.png")
+
 # 🪨 障碍物（支持多种类型，统一使用正方形网格）
 
 @export var obstacle_type: String = "rock"
@@ -8,11 +10,11 @@ extends StaticBody2D
 @onready var collision_shape = $CollisionShape2D
 @onready var sprite = $Sprite2D
 
-var obstacle_colors = {
-	"wall": Color(0.4, 0.4, 0.4),
-	"rock": Color(0.6, 0.4, 0.2),
-	"tree": Color(0.2, 0.6, 0.2),
-	"crystal": Color(0.6, 0.2, 0.8)
+var obstacle_tints = {
+	"wall": Color(0.75, 0.78, 0.82),
+	"rock": Color.WHITE,
+	"tree": Color(0.65, 0.9, 0.65),
+	"crystal": Color(0.85, 0.65, 1.0)
 }
 
 func _ready() -> void:
@@ -44,12 +46,14 @@ func setup_obstacle() -> void:
 	collision_shape.shape = shape
 	
 	# 设置视觉效果（根据类型设置颜色）
-	sprite.modulate = obstacle_colors.get(obstacle_type, Color(0.6, 0.4, 0.2))
+	sprite.texture = DEFAULT_OBSTACLE_TEXTURE
+	sprite.modulate = obstacle_tints.get(obstacle_type, Color.WHITE)
 	
 	# 调整sprite缩放以适应grid_size
-	# 假设stone.png原始大小约为128x128
-	var sprite_scale = float(grid_size) / 128.0
-	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	if sprite.texture:
+		var texture_size = sprite.texture.get_size()
+		if texture_size.x > 0 and texture_size.y > 0:
+			sprite.scale = Vector2(float(grid_size) / texture_size.x, float(grid_size) / texture_size.y)
 
 func set_obstacle_type(type: String) -> void:
 	"""设置障碍物类型"""

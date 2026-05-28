@@ -2,6 +2,8 @@
 class_name DungeonGenerator
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const FLOOR_TEXTURE = preload("res://art/environment/dungeon_floor_stone.png")
+const WALL_TEXTURE = preload("res://art/environment/dungeon_wall_stone.png")
 
 # 房间状态常量
 const ROOM_UNEXPLORED = 0
@@ -367,12 +369,9 @@ func create_corridor_between_rooms(room1_coord: Vector2i, room2_coord: Vector2i,
 
 func create_corridor_visual(corridor_data: Dictionary) -> void:
 	# 创建通道的视觉效果和碰撞体
-	var corridor_bg = ColorRect.new()
+	var corridor_bg = create_tiled_texture_rect(FLOOR_TEXTURE, corridor_data.size, -9)
 	corridor_bg.name = "CorridorBG_" + corridor_data.id
-	corridor_bg.size = corridor_data.size
 	corridor_bg.position = corridor_data.position
-	corridor_bg.color = Color(0.4, 0.4, 0.6, 0.9)  # 蓝灰色，比房间浅
-	corridor_bg.z_index = -9  # 在房间背景之上，但在内容之下
 	add_child(corridor_bg)
 	
 	# 创建通道的碰撞体（默认禁用，由房间状态控制）
@@ -440,14 +439,21 @@ func create_corridor_wall(wall_pos: Vector2, wall_size: Vector2, wall_name: Stri
 	wall.add_child(collision)
 	
 	# 创建视觉效果
-	var wall_visual = ColorRect.new()
-	wall_visual.size = wall_size
-	wall_visual.color = Color(0.4, 0.4, 0.5, 1.0)  # 灰色墙体
-	wall_visual.z_index = -5
+	var wall_visual = create_tiled_texture_rect(WALL_TEXTURE, wall_size, -5)
 	wall.add_child(wall_visual)
 	
 	add_child(wall)
 	print("创建通道墙体: ", wall_name, " 位置: ", wall_pos, " 大小: ", wall_size)
+
+func create_tiled_texture_rect(texture: Texture2D, rect_size: Vector2, z_layer: int) -> TextureRect:
+	var texture_rect = TextureRect.new()
+	texture_rect.texture = texture
+	texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture_rect.stretch_mode = TextureRect.STRETCH_TILE
+	texture_rect.size = rect_size
+	texture_rect.z_index = z_layer
+	texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return texture_rect
 
 func _check_player_position() -> void:
 	if not player:
@@ -774,12 +780,10 @@ func update_corridor_state(corridor_data: Dictionary, should_block: bool) -> voi
 	if background:
 		if should_block:
 			# 封锁状态：通道变暗
-			background.color = Color(0.2, 0.2, 0.3, 0.9)  # 深色
 			background.modulate = Color(0.6, 0.6, 0.6, 1.0)  # 暗化
 			print("    🎨 通道视觉已变暗")
 		else:
 			# 开放状态：通道正常颜色
-			background.color = Color(0.4, 0.4, 0.6, 0.9)  # 正常蓝灰色
 			background.modulate = Color.WHITE  # 正常亮度
 			print("    🎨 通道视觉已恢复正常")
 	
