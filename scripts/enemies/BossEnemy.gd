@@ -136,7 +136,7 @@ func _find_target():
 
 func _process(_delta: float) -> void:
 	# 如果BOSS已死亡，停止所有行为（包括召唤）
-	if is_dead:
+	if not can_process_enemy_ai():
 		return
 		
 	# 检查召唤技能
@@ -146,27 +146,31 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-	if not is_dead and current_target:
-		var distance_to_target = get_distance_to(current_target)
-		
-		# 距离管理
-		if distance_to_target <= max_distance and distance_to_target >= min_distance:
-			# 在理想距离内 - 攻击并移动
-			if can_attack():
-				perform_attack(current_target.global_position, current_target)
-				print("👑 BOSS发起攻击!")
-			
-			# 执行战术移动
-			perform_tactical_movement()
-		elif distance_to_target < min_distance:
-			# 太近 - 后退
-			retreat_from_target()
-		elif distance_to_target > max_distance:
-			# 太远 - 慢慢接近
-			approach_target_slowly()
-		
-		# 应用移动
-		move_and_slide()
+	if not can_process_enemy_ai() or not current_target:
+		velocity = Vector2.ZERO
+		return
+
+	velocity = Vector2.ZERO
+	var distance_to_target = get_distance_to(current_target)
+
+	# 距离管理
+	if distance_to_target <= max_distance and distance_to_target >= min_distance:
+		# 在理想距离内 - 攻击并移动
+		if can_attack():
+			perform_attack(current_target.global_position, current_target)
+			print("👑 BOSS发起攻击!")
+
+		# 执行战术移动
+		perform_tactical_movement()
+	elif distance_to_target < min_distance:
+		# 太近 - 后退
+		retreat_from_target()
+	elif distance_to_target > max_distance:
+		# 太远 - 慢慢接近
+		approach_target_slowly()
+
+	# 应用移动
+	move_and_slide()
 
 ## ========== 移动方法 ==========
 

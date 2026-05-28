@@ -1,6 +1,7 @@
 ﻿extends "res://scripts/CharacterBase.gd"
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🎮 玩家角色类 - 基于新架构的玩家实现
 
@@ -78,7 +79,7 @@ func post_ready_setup() -> void:
 	add_to_group(Constants.GROUP_CHARACTERS)
 	add_to_group(Constants.GROUP_PLAYERS)
 	
-	print("🎮 玩家角色初始化完成")
+	DebugLog.debug(["🎮 玩家角色初始化完成"], DebugLog.CATEGORY_PLAYER)
 
 func setup_walk_sprite() -> void:
 	if not player_sprite:
@@ -94,32 +95,32 @@ func setup_state_manager() -> void:
 	state_manager = PlayerStateManager.new(self)
 	state_manager.name = Constants.NODE_STATE_MANAGER
 	add_child(state_manager)
-	print("✅ PlayerStateManager初始化完成")
+	DebugLog.debug(["✅ PlayerStateManager初始化完成"], DebugLog.CATEGORY_PLAYER)
 
 ## ========== 输入处理 ==========
 
 func _input(event: InputEvent) -> void:
 	# 调试：打印所有按键事件
 	if OS.is_debug_build() and event is InputEventKey and event.pressed:
-		print("🔍 按键事件: keycode=", event.keycode, " physical_keycode=", event.physical_keycode)
-		print("  skill_1=", event.is_action("skill_1"), " pressed=", event.is_action_pressed("skill_1"))
-		print("  input_enabled=", input_enabled, " is_dead=", is_dead, " is_stunned=", is_stunned)
+		DebugLog.debug(["🔍 按键事件: keycode=", event.keycode, " physical_keycode=", event.physical_keycode], DebugLog.CATEGORY_PLAYER)
+		DebugLog.debug(["  skill_1=", event.is_action("skill_1"), " pressed=", event.is_action_pressed("skill_1")], DebugLog.CATEGORY_PLAYER)
+		DebugLog.debug(["  input_enabled=", input_enabled, " is_dead=", is_dead, " is_stunned=", is_stunned], DebugLog.CATEGORY_PLAYER)
 	
 	if not input_enabled or is_dead or is_stunned:
 		return
 	
 	# 技能按键（使用输入映射，确保导出后正常工作）
 	if event.is_action_pressed("skill_1"):
-		print("✅ 技能1触发")
+		DebugLog.debug(["✅ 技能1触发"], DebugLog.CATEGORY_PLAYER)
 		state_manager.handle_skill_key_input(0)
 	elif event.is_action_pressed("skill_2"):
-		print("✅ 技能2触发")
+		DebugLog.debug(["✅ 技能2触发"], DebugLog.CATEGORY_PLAYER)
 		state_manager.handle_skill_key_input(1)
 	elif event.is_action_pressed("skill_3"):
-		print("✅ 技能3触发")
+		DebugLog.debug(["✅ 技能3触发"], DebugLog.CATEGORY_PLAYER)
 		state_manager.handle_skill_key_input(2)
 	elif event.is_action_pressed("skill_4"):
-		print("✅ 技能4触发")
+		DebugLog.debug(["✅ 技能4触发"], DebugLog.CATEGORY_PLAYER)
 		state_manager.handle_skill_key_input(3)
 	
 	# ESC键
@@ -206,7 +207,7 @@ func update_facing_direction(input_vector: Vector2) -> void:
 
 func execute_attack(target_position: Vector2, _target: Node = null) -> void:
 	"""执行玩家普攻"""
-	print("⚔️ 玩家执行普攻到: ", target_position)
+	DebugLog.debug(["⚔️ 玩家执行普攻到: ", target_position], DebugLog.CATEGORY_COMBAT)
 	
 	# 创建普攻弹道
 	create_basic_attack_projectile(target_position)
@@ -264,7 +265,7 @@ func execute_skill_cast(skill_id: String, target_position: Vector2, _target: Nod
 	
 	# 通过技能管理器释放技能
 	# 这里需要根据实际的技能管理器接口调整
-	print("🔮 玩家释放技能: ", skill_id, " 到: ", target_position)
+	DebugLog.debug(["🔮 玩家释放技能: ", skill_id, " 到: ", target_position], DebugLog.CATEGORY_SKILL)
 	return true
 
 ## ========== 经验和等级系统 ==========
@@ -274,7 +275,7 @@ func gain_experience(amount: int) -> void:
 	experience += amount
 	experience_gained.emit(amount)
 	
-	print("✨ 获得 ", amount, " 点经验值，当前经验: ", experience)
+	DebugLog.info(["✨ 获得 ", amount, " 点经验值，当前经验: ", experience], DebugLog.CATEGORY_PLAYER)
 	
 	# 检查升级
 	check_level_up()
@@ -299,7 +300,7 @@ func level_up() -> void:
 	health = max_health  # 升级时满血满蓝
 	mana = max_mana
 	
-	print("🎉 玩家升级到 ", level, " 级! 生命值+", health_bonus, " 魔法值+", mana_bonus)
+	DebugLog.info(["🎉 玩家升级到 ", level, " 级! 生命值+", health_bonus, " 魔法值+", mana_bonus], DebugLog.CATEGORY_PLAYER)
 	player_leveled_up.emit(level)
 	
 	# 升级特效
@@ -314,18 +315,18 @@ func get_required_experience_for_level(target_level: int) -> int:
 func add_silver_key(amount: int = 1) -> void:
 	"""添加银钥匙"""
 	silver_key_count += amount
-	print("🔑 获得银钥匙 +", amount, "，当前数量: ", silver_key_count)
+	DebugLog.info(["🔑 获得银钥匙 +", amount, "，当前数量: ", silver_key_count], DebugLog.CATEGORY_PLAYER)
 	silver_key_changed.emit(silver_key_count)
 
 func remove_silver_key(amount: int = 1) -> bool:
 	"""移除银钥匙，返回是否成功"""
 	if silver_key_count >= amount:
 		silver_key_count -= amount
-		print("🔑 使用银钥匙 -", amount, "，剩余数量: ", silver_key_count)
+		DebugLog.info(["🔑 使用银钥匙 -", amount, "，剩余数量: ", silver_key_count], DebugLog.CATEGORY_PLAYER)
 		silver_key_changed.emit(silver_key_count)
 		return true
 	else:
-		print("⚠️ 银钥匙不足！需要: ", amount, "，当前: ", silver_key_count)
+		DebugLog.warning(["银钥匙不足！需要: ", amount, "，当前: ", silver_key_count], DebugLog.CATEGORY_PLAYER)
 		return false
 
 func show_level_up_effect() -> void:
@@ -358,7 +359,7 @@ func respawn() -> void:
 	# 移动到起始房间
 	move_to_start_room()
 	
-	print("🎮 玩家重生完成")
+	DebugLog.info(["🎮 玩家重生完成"], DebugLog.CATEGORY_PLAYER)
 
 func move_to_start_room() -> void:
 	"""移动到起始房间"""
@@ -368,7 +369,7 @@ func move_to_start_room() -> void:
 		if start_room:
 			# 将玩家移动到起始房间中心
 			position = start_room.position + start_room.room_size / 2
-			print("🏠 玩家重生到起始房间: ", start_room.room_id, " 位置: ", position)
+			DebugLog.info(["🏠 玩家重生到起始房间: ", start_room.room_id, " 位置: ", position], DebugLog.CATEGORY_PLAYER)
 			
 			# 如果当前房间不是起始房间，切换到起始房间
 			if dungeon_generator.current_room != start_room:
@@ -376,7 +377,7 @@ func move_to_start_room() -> void:
 			else:
 				# 如果已经在起始房间，确保房间状态正确
 				dungeon_generator.current_room = start_room
-				print("🔄 玩家已在起始房间，重置房间状态")
+				DebugLog.debug(["🔄 玩家已在起始房间，重置房间状态"], DebugLog.CATEGORY_PLAYER)
 
 ## ========== 相机管理 ==========
 
@@ -384,8 +385,8 @@ func set_camera_limits(room_position: Vector2, room_size: Vector2) -> void:
 	"""设置相机限制（兼容性保留，实际由DungeonGenerator的全局限制管理）"""
 	if camera:
 		# 这个函数现在主要用于兼容性，实际的相机限制由DungeonGenerator统一设置
-		print("📷 相机限制设置请求 - 房间位置: ", room_position, " 尺寸: ", room_size)
-		print("📷 实际相机限制由DungeonGenerator的全局设置管理")
+		DebugLog.debug(["📷 相机限制设置请求 - 房间位置: ", room_position, " 尺寸: ", room_size], DebugLog.CATEGORY_PLAYER)
+		DebugLog.debug(["📷 实际相机限制由DungeonGenerator的全局设置管理"], DebugLog.CATEGORY_PLAYER)
 
 ## ========== Buff系统集成 ==========
 

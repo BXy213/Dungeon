@@ -1,7 +1,11 @@
 ﻿extends Node
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 const Styles = preload("res://scripts/ui/UIStyleFactory.gd")
+
+@export var enable_verbose_logs: bool = true
+@export_enum("debug", "info", "warning", "error") var verbose_log_level: String = "debug"
 
 var death_panel = null
 var victory_panel = null
@@ -13,6 +17,12 @@ var is_game_paused: bool = false
 var enemies_killed: int = 0
 var total_damage_dealt: int = 0
 var boss_defeated: bool = false
+
+func _enter_tree() -> void:
+	configure_debug_logging()
+
+func configure_debug_logging() -> void:
+	DebugLog.configure(enable_verbose_logs, DebugLog.level_from_name(verbose_log_level))
 
 func _ready() -> void:
 	# 延迟初始化，确保场景树完全准备好
@@ -48,16 +58,16 @@ func pause_game() -> void:
 	is_game_paused = true
 	# 暂停游戏树
 	get_tree().paused = true
-	print("游戏暂停")
+	DebugLog.info(["游戏暂停"], DebugLog.CATEGORY_GAME)
 
 func resume_game() -> void:
 	is_game_paused = false
 	# 恢复游戏树
 	get_tree().paused = false
-	print("游戏恢复")
+	DebugLog.info(["游戏恢复"], DebugLog.CATEGORY_GAME)
 
 func continue_game() -> void:
-	print("继续游戏")
+	DebugLog.info(["继续游戏"], DebugLog.CATEGORY_GAME)
 	
 	# 隐藏暂停面板
 	hide_death_panel()
@@ -77,33 +87,33 @@ func connect_enemy_signals() -> void:
 	
 	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
-		print("📊 GameManager: 开始连接房间信号，房间数: ", dungeon_generator.rooms.size())
+		DebugLog.debug(["📊 GameManager: 开始连接房间信号，房间数: ", dungeon_generator.rooms.size()], DebugLog.CATEGORY_GAME)
 		for room in dungeon_generator.rooms.values():
 			if room:
 				# 连接房间的敌人死亡信号
 				if not room.enemy_died_in_room.is_connected(_on_enemy_killed):
 					room.enemy_died_in_room.connect(_on_enemy_killed)
-					print("  ✓ 已连接房间 ", room.room_id, " 的敌人死亡信号")
+					DebugLog.debug(["  ✓ 已连接房间 ", room.room_id, " 的敌人死亡信号"], DebugLog.CATEGORY_GAME)
 				else:
-					print("  ⚠️ 房间 ", room.room_id, " 信号已连接")
+					DebugLog.debug(["  ⚠️ 房间 ", room.room_id, " 信号已连接"], DebugLog.CATEGORY_GAME)
 	else:
-		print("⚠️ GameManager: 未找到DungeonGenerator")
+		DebugLog.warning(["GameManager: 未找到DungeonGenerator"], DebugLog.CATEGORY_GAME)
 
 func _on_enemy_killed(_room_id: Vector2i, _remaining_enemies: int) -> void:
 	"""敌人被击杀时的回调"""
 	enemies_killed += 1
-	print("📊 统计更新：已击杀 ", enemies_killed, " 个敌人，总伤害: ", total_damage_dealt)
+	DebugLog.debug(["📊 统计更新：已击杀 ", enemies_killed, " 个敌人，总伤害: ", total_damage_dealt], DebugLog.CATEGORY_GAME)
 
 func record_damage(damage: int) -> void:
 	"""记录造成的伤害"""
 	total_damage_dealt += damage
-	print("📊 记录伤害: +", damage, " 总计: ", total_damage_dealt)
+	DebugLog.debug(["📊 记录伤害: +", damage, " 总计: ", total_damage_dealt], DebugLog.CATEGORY_COMBAT)
 
 func _on_boss_defeated() -> void:
 	"""BOSS被击败"""
 	boss_defeated = true
-	print("🎉 BOSS被击败！")
-	print("📊 最终统计 - 击杀: ", enemies_killed, ", 伤害: ", total_damage_dealt)
+	DebugLog.info(["🎉 BOSS被击败！"], DebugLog.CATEGORY_GAME)
+	DebugLog.info(["📊 最终统计 - 击杀: ", enemies_killed, ", 伤害: ", total_damage_dealt], DebugLog.CATEGORY_GAME)
 	
 	# 延迟显示胜利面板，让死亡动画播放完
 	await get_tree().create_timer(1.0).timeout
@@ -113,7 +123,7 @@ func create_victory_panel() -> void:
 	"""创建胜利面板"""
 	var ui_root = get_tree().current_scene.get_node_or_null("UI")
 	if not ui_root:
-		print("⚠️ 未找到UI根节点")
+		DebugLog.warning(["未找到UI根节点"], DebugLog.CATEGORY_UI)
 		return
 	
 	victory_panel = Panel.new()
@@ -217,18 +227,18 @@ func create_victory_panel() -> void:
 	button_hbox.add_child(menu_button)
 	
 	ui_root.add_child(victory_panel)
-	print("✅ 胜利面板创建完成")
+	DebugLog.info(["✅ 胜利面板创建完成"], DebugLog.CATEGORY_UI)
 
 func show_victory_panel() -> void:
 	"""显示胜利面板"""
 	if not victory_panel:
-		print("⚠️ 胜利面板未创建")
+		DebugLog.warning(["胜利面板未创建"], DebugLog.CATEGORY_UI)
 		return
 	
 	# 暂停游戏
 	pause_game()
 	
-	print("🎉 准备显示胜利面板 - 击杀:", enemies_killed, " 伤害:", total_damage_dealt)
+	DebugLog.info(["🎉 准备显示胜利面板 - 击杀:", enemies_killed, " 伤害:", total_damage_dealt], DebugLog.CATEGORY_UI)
 	
 	# 直接查找标签并更新
 	var kills_label = find_node_by_name_recursive(victory_panel, "KillsLabel")
@@ -236,19 +246,19 @@ func show_victory_panel() -> void:
 	
 	if kills_label:
 		kills_label.text = "⚔️ 击杀敌人：" + str(enemies_killed)
-		print("  ✓ 更新击杀标签: ", kills_label.text)
+		DebugLog.debug(["  ✓ 更新击杀标签: ", kills_label.text], DebugLog.CATEGORY_UI)
 	else:
-		print("  ⚠️ 未找到KillsLabel")
+		DebugLog.warning(["未找到KillsLabel"], DebugLog.CATEGORY_UI)
 	
 	if damage_label:
 		damage_label.text = "💥 造成伤害：" + str(total_damage_dealt)
-		print("  ✓ 更新伤害标签: ", damage_label.text)
+		DebugLog.debug(["  ✓ 更新伤害标签: ", damage_label.text], DebugLog.CATEGORY_UI)
 	else:
-		print("  ⚠️ 未找到DamageLabel")
+		DebugLog.warning(["未找到DamageLabel"], DebugLog.CATEGORY_UI)
 	
 	# 显示面板
 	victory_panel.visible = true
-	print("🎉 胜利面板已显示")
+	DebugLog.info(["🎉 胜利面板已显示"], DebugLog.CATEGORY_UI)
 
 func hide_victory_panel() -> void:
 	"""隐藏胜利面板"""
@@ -269,7 +279,7 @@ func find_node_by_name_recursive(node: Node, target_name: String) -> Node:
 
 func _on_victory_restart_pressed() -> void:
 	"""胜利面板 - 重新开始"""
-	print("🔄 从胜利面板重新开始游戏")
+	DebugLog.info(["🔄 从胜利面板重新开始游戏"], DebugLog.CATEGORY_GAME)
 	hide_victory_panel()
 	
 	# 恢复游戏状态（取消暂停）
@@ -280,7 +290,7 @@ func _on_victory_restart_pressed() -> void:
 
 func _on_victory_menu_pressed() -> void:
 	"""胜利面板 - 返回主菜单"""
-	print("🏠 从胜利面板返回主菜单")
+	DebugLog.info(["🏠 从胜利面板返回主菜单"], DebugLog.CATEGORY_GAME)
 	hide_victory_panel()
 	resume_game()
 	return_to_main_menu()
@@ -292,7 +302,7 @@ func hide_death_panel() -> void:
 		death_panel.visible = false
 
 func restart_game() -> void:
-	print("重新开始游戏")
+	DebugLog.info(["重新开始游戏"], DebugLog.CATEGORY_GAME)
 	
 	# 隐藏死亡面板
 	hide_death_panel()
@@ -312,11 +322,11 @@ func reset_all_enemies() -> void:
 			enemy.is_dead = false
 
 func return_to_main_menu() -> void:
-	print("返回主菜单")
+	DebugLog.info(["返回主菜单"], DebugLog.CATEGORY_GAME)
 	# 确保恢复游戏状态，避免主菜单被暂停影响
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
 func quit_game() -> void:
-	print("退出游戏")
+	DebugLog.info(["退出游戏"], DebugLog.CATEGORY_GAME)
 	get_tree().quit()

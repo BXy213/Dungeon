@@ -122,7 +122,8 @@ func _physics_process(delta: float) -> void:
 
 func _ai_update():
 	"""AI更新逻辑"""
-	if is_dead:
+	if not can_process_enemy_ai():
+		velocity = Vector2.ZERO
 		return
 	
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)

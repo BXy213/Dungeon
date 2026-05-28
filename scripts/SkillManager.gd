@@ -1,6 +1,7 @@
 ﻿extends Node
 
 const SkillCatalog = preload("res://scripts/registries/SkillRegistry.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🎯 重构后的技能管理器 - 基于技能类的新架构
 
@@ -9,6 +10,7 @@ var active_skills = [null, null, null, null]
 
 # 🎁 玩家拥有的技能库（包括激活和未激活的）
 var owned_skills: Array[String] = []
+var skill_info_cache: Dictionary = {}
 
 # 引用
 var player: Node = null
@@ -23,9 +25,9 @@ func _ready() -> void:
 	# 设置初始技能（如果配置了的话）
 	if initial_skills.size() > 0:
 		set_initial_skills(initial_skills)
-		print("🎮 玩家初始技能: ", initial_skills)
+		DebugLog.info(["🎮 玩家初始技能: ", initial_skills], DebugLog.CATEGORY_SKILL)
 	else:
-		print("🎮 玩家开始时没有任何技能，需要通过房间奖励获得")
+		DebugLog.info(["🎮 玩家开始时没有任何技能，需要通过房间奖励获得"], DebugLog.CATEGORY_SKILL)
 
 # 🔧 简化初始技能设置函数
 func set_initial_skills(skill_ids: Array[String]) -> void:
@@ -40,7 +42,7 @@ func set_initial_skills(skill_ids: Array[String]) -> void:
 		if SkillCatalog.has_skill(skill_ids[i]):
 			active_skills[i] = SkillCatalog.create_skill(skill_ids[i], player, self)
 			if active_skills[i]:
-				print("设置初始技能槽 ", i, ": ", active_skills[i].skill_name)
+				DebugLog.debug(["设置初始技能槽 ", i, ": ", active_skills[i].skill_name], DebugLog.CATEGORY_SKILL)
 
 # 🔄 技能切换函数
 func swap_skill(slot_index: int, new_skill_id: String) -> bool:
@@ -54,14 +56,14 @@ func swap_skill(slot_index: int, new_skill_id: String) -> bool:
 		if not active_skills[slot_index]:
 			return false
 		var old_skill_name = str(old_skill.skill_name) if old_skill else "空"
-		print("技能槽 ", slot_index, " 从 ", old_skill_name, " 切换到 ", active_skills[slot_index].skill_name)
+		DebugLog.info(["技能槽 ", slot_index, " 从 ", old_skill_name, " 切换到 ", active_skills[slot_index].skill_name], DebugLog.CATEGORY_SKILL)
 		return true
 	elif new_skill_id == "":
 		# 移除技能
 		var old_skill = active_skills[slot_index]
 		active_skills[slot_index] = null
 		var old_skill_name = str(old_skill.skill_name) if old_skill else "空"
-		print("移除技能槽 ", slot_index, " 的技能: ", old_skill_name)
+		DebugLog.info(["移除技能槽 ", slot_index, " 的技能: ", old_skill_name], DebugLog.CATEGORY_SKILL)
 		return true
 	
 	return false
@@ -87,11 +89,14 @@ func get_active_skill_info(slot_index: int) -> Dictionary:
 
 func get_skill_info_by_id(skill_id: String) -> Dictionary:
 	"""通过技能ID获取技能信息"""
+	if skill_id in skill_info_cache:
+		return skill_info_cache[skill_id]
+
 	if SkillCatalog.has_skill(skill_id):
 		var temp_skill = SkillCatalog.create_skill(skill_id, player, self)
 		if not temp_skill:
 			return {}
-		return {
+		var skill_info = {
 			"name": temp_skill.skill_name,
 			"cooldown": temp_skill.cooldown,
 			"mana_cost": temp_skill.mana_cost,
@@ -100,6 +105,8 @@ func get_skill_info_by_id(skill_id: String) -> Dictionary:
 			"range": temp_skill.max_range,
 			"description": temp_skill.description
 		}
+		skill_info_cache[skill_id] = skill_info
+		return skill_info
 	return {}
 
 func get_skill_instance(slot_index: int):
@@ -117,7 +124,7 @@ func can_cast_skill(slot_index: int) -> bool:
 func cast_skill(slot_index: int, target_position: Vector2 = Vector2.ZERO, target_node: Node = null) -> bool:
 	var skill = get_skill_instance(slot_index)
 	if not skill:
-		print("技能槽为空!")
+		DebugLog.debug(["技能槽为空!"], DebugLog.CATEGORY_SKILL)
 		return false
 	
 	return skill.cast_skill(target_position, target_node)
@@ -160,7 +167,7 @@ func add_skill_to_library(skill_id: String) -> bool:
 	"""将技能添加到玩家的技能库"""
 	if SkillCatalog.has_skill(skill_id) and skill_id not in owned_skills:
 		owned_skills.append(skill_id)
-		print("🎁 获得新技能: ", skill_id)
+		DebugLog.info(["🎁 获得新技能: ", skill_id], DebugLog.CATEGORY_SKILL)
 		return true
 	return false
 
@@ -169,7 +176,7 @@ func auto_activate_skill(skill_id: String) -> int:
 	for i in range(4):
 		if active_skills[i] == null:
 			if swap_skill(i, skill_id):
-				print("🔥 技能 ", skill_id, " 自动激活到槽位 ", i + 1)
+				DebugLog.info(["🔥 技能 ", skill_id, " 自动激活到槽位 ", i + 1], DebugLog.CATEGORY_SKILL)
 				return i
 			break
 	return -1

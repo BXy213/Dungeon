@@ -2,6 +2,7 @@
 extends RefCounted
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🎯 技能基类 - 所有技能的通用属性和接口
 
@@ -48,7 +49,7 @@ func setup_cooldown_timer():
 func _on_cooldown_finished():
 	"""冷却完成回调"""
 	is_on_cooldown = false
-	print(skill_name, " 冷却完成!")
+	DebugLog.debug([skill_name, " 冷却完成!"], DebugLog.CATEGORY_SKILL)
 
 ## ========== 核心接口 ==========
 ## 子类必须重写这些方法
@@ -56,23 +57,23 @@ func _on_cooldown_finished():
 func can_cast() -> bool:
 	"""检查是否可以释放技能"""
 	if is_on_cooldown:
-		print(skill_name, " 冷却中!")
+		DebugLog.debug([skill_name, " 冷却中!"], DebugLog.CATEGORY_SKILL)
 		return false
 	
 	if player and player.mana < mana_cost:
-		print("魔法值不足! ", skill_name, " 需要 ", mana_cost, " 点魔法")
+		DebugLog.info(["魔法值不足! ", skill_name, " 需要 ", mana_cost, " 点魔法"], DebugLog.CATEGORY_SKILL)
 		return false
 	
 	return true
 
 func on_skill_selected() -> void:
 	"""技能被选中时调用（进入技能特定状态）"""
-	print("选择技能: ", skill_name)
+	DebugLog.debug(["选择技能: ", skill_name], DebugLog.CATEGORY_SKILL)
 	# 子类重写实现特定逻辑
 
 func on_skill_deselected() -> void:
 	"""技能被取消选择时调用"""
-	print("取消技能: ", skill_name)
+	DebugLog.debug(["取消技能: ", skill_name], DebugLog.CATEGORY_SKILL)
 	# 子类重写清理逻辑
 
 func cast_skill(target_position: Vector2 = Vector2.ZERO, target_node: Node = null) -> bool:
@@ -94,7 +95,7 @@ func cast_skill(target_position: Vector2 = Vector2.ZERO, target_node: Node = nul
 
 func execute_skill_effect(_target_position: Vector2, _target_node: Node) -> void:
 	"""执行技能效果 - 子类必须重写"""
-	print("技能 ", skill_name, " 释放! (基类默认实现)")
+	DebugLog.debug(["技能 ", skill_name, " 释放! (基类默认实现)"], DebugLog.CATEGORY_SKILL)
 
 func get_skill_indicator_info() -> Dictionary:
 	"""获取技能指示器信息 - 子类可重写自定义指示器"""

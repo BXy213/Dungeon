@@ -1,6 +1,7 @@
 ﻿extends Area2D
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 @export var speed: float = 400.0
 @export var life_time: float = 2.0
@@ -89,7 +90,7 @@ func setup_projectile_skill() -> void:
 		
 		var length_text = str(skill_length) if skill_length > 0 else "默认"
 		var width_text = str(skill_width) if skill_width > 0 else "默认"
-		print("  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (长度: ", length_text, ", 宽度: ", width_text, ")")
+		DebugLog.debug(["  🎨 调整弹道贴图缩放: scale=", sprite.scale, " (长度: ", length_text, ", 宽度: ", width_text, ")"], DebugLog.CATEGORY_COMBAT)
 
 func setup_directional_collision() -> void:
 	"""设置定向碰撞盒（矩形，朝向发射方向）"""
@@ -103,13 +104,13 @@ func setup_directional_collision() -> void:
 	rect_shape.size = Vector2(collision_length, skill_width)
 	collision_shape.shape = rect_shape
 	
-	print("  📐 设置定向碰撞盒: 长度=", collision_length, " 宽度=", skill_width)
+	DebugLog.debug(["  📐 设置定向碰撞盒: 长度=", collision_length, " 宽度=", skill_width], DebugLog.CATEGORY_COMBAT)
 
 func update_rotation() -> void:
 	"""更新旋转角度和贴图朝向（在direction设置后调用）"""
 	if direction != Vector2.ZERO:
 		rotation = direction.angle()
-		print("  🔄 更新旋转朝向: ", rad_to_deg(rotation), "° 方向: ", direction)
+		DebugLog.debug(["  🔄 更新旋转朝向: ", rad_to_deg(rotation), "° 方向: ", direction], DebugLog.CATEGORY_COMBAT)
 
 func setup_enemy_projectile() -> void:
 	"""初始化敌人弹道（不设置外观，由敌人类自己控制）"""
@@ -176,7 +177,7 @@ func _on_area_entered(area: Area2D) -> void:
 	if "skill_type" in area:
 		var other_skill_type = area.skill_type
 		if other_skill_type in ["projectile", "enemy_projectile"]:
-			print("🔄 弹道相遇，互相穿过: ", skill_type, " vs ", other_skill_type)
+			DebugLog.debug(["🔄 弹道相遇，互相穿过: ", skill_type, " vs ", other_skill_type], DebugLog.CATEGORY_COMBAT)
 			return  # 弹道之间不碰撞，互相穿过
 	
 	# 其他Area2D碰撞处理（如果需要的话）
@@ -188,7 +189,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if skill_type == "instant":
 		return
 	
-	print("📍 弹道检测到碰撞: ", body.name, " 类型: ", body.get_class(), " 弹道类型: ", skill_type)
+	DebugLog.debug(["📍 弹道检测到碰撞: ", body.name, " 类型: ", body.get_class(), " 弹道类型: ", skill_type], DebugLog.CATEGORY_COMBAT)
 	
 	# 首先检查是否为阻挡物（障碍物或墙壁）碰撞
 	if is_obstacle_collision(body):
@@ -212,32 +213,32 @@ func handle_player_projectile_collision(body: Node2D) -> void:
 		if has_meta("hit_once") and get_meta("hit_once") == true:
 			# 检查这个敌人是否已经被命中过
 			if body in hit_targets:
-				print("  ⏭️ 敌人 ", body.name, " 已被命中过，跳过")
+				DebugLog.debug(["  ⏭️ 敌人 ", body.name, " 已被命中过，跳过"], DebugLog.CATEGORY_COMBAT)
 				return  # 这个敌人已经被命中过，跳过
 			else:
 				# 记录这个敌人
 				hit_targets.append(body)
-				print("  🎯 首次命中敌人: ", body.name, " (已命中数: ", hit_targets.size(), ")")
+				DebugLog.debug(["  🎯 首次命中敌人: ", body.name, " (已命中数: ", hit_targets.size(), ")"], DebugLog.CATEGORY_COMBAT)
 		
 		# 传递伤害来源（玩家）
 		body.take_damage(damage, source if source else get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS))
-		print("玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害")
+		DebugLog.debug(["玩家技能命中 ", body.name, "! 造成 ", damage, " 点伤害"], DebugLog.CATEGORY_COMBAT)
 		
 		# 如果有buff信息，对目标施加buff
 		if on_hit_buff_type >= 0:
-			print("  🔍 检查buff应用: buff_type=", on_hit_buff_type, " 目标=", body.name)
-			print("    目标有BuffSystem子节点? ", body.has_node("BuffSystem"))
+			DebugLog.debug(["  🔍 检查buff应用: buff_type=", on_hit_buff_type, " 目标=", body.name], DebugLog.CATEGORY_COMBAT)
+			DebugLog.debug(["    目标有BuffSystem子节点? ", body.has_node("BuffSystem")], DebugLog.CATEGORY_COMBAT)
 			
 			if body.has_node("BuffSystem"):
 				var buff_system = body.get_node("BuffSystem")
-				print("    BuffSystem节点类型: ", buff_system.get_class())
+				DebugLog.debug(["    BuffSystem节点类型: ", buff_system.get_class()], DebugLog.CATEGORY_COMBAT)
 				if buff_system.has_method("apply_buff"):
 					buff_system.apply_buff(on_hit_buff_type, on_hit_buff_duration, on_hit_buff_strength, source)
-					print("  ✨ 成功对 ", body.name, " 施加Buff: ", on_hit_buff_type)
+					DebugLog.debug(["  ✨ 成功对 ", body.name, " 施加Buff: ", on_hit_buff_type], DebugLog.CATEGORY_COMBAT)
 				else:
-					print("  ⚠️ BuffSystem没有apply_buff方法")
+					DebugLog.warning(["BuffSystem没有apply_buff方法"], DebugLog.CATEGORY_COMBAT)
 			else:
-				print("  ⚠️ 目标没有BuffSystem节点，目标子节点: ", body.get_children())
+				DebugLog.warning(["目标没有BuffSystem节点，目标子节点: ", body.get_children()], DebugLog.CATEGORY_COMBAT)
 		
 		# 处理击退效果
 		if has_meta("knockback") and get_meta("knockback") == true:
@@ -254,19 +255,19 @@ func handle_player_projectile_collision(body: Node2D) -> void:
 			queue_free()
 		else:
 			# 穿透技能，命中后继续飞行并可以命中其他目标
-			print("  ✈️ 技能继续飞行，可以命中其他未命中的目标")
+			DebugLog.debug(["  ✈️ 技能继续飞行，可以命中其他未命中的目标"], DebugLog.CATEGORY_COMBAT)
 
 func handle_enemy_projectile_collision(body: Node2D) -> void:
 	# 敌人弹道：检查是否为玩家
-	print("🎯 敌人弹道碰撞检测: 命中节点 ", body.name, " (", body.get_class(), ")")
+	DebugLog.debug(["🎯 敌人弹道碰撞检测: 命中节点 ", body.name, " (", body.get_class(), ")"], DebugLog.CATEGORY_COMBAT)
 	
 	var is_player = (body.name == "Player" or body.is_in_group(Constants.GROUP_PLAYERS)) and body.has_method("take_damage")
-	print("    最终判定是否为玩家: ", is_player)
+	DebugLog.debug(["    最终判定是否为玩家: ", is_player], DebugLog.CATEGORY_COMBAT)
 	
 	if is_player:
 		# 造成伤害（✅ 传递source用于寒冰护甲反击等）
 		body.take_damage(damage, source)
-		print("敌人弹道命中玩家，造成 ", damage, " 点伤害")
+		DebugLog.debug(["敌人弹道命中玩家，造成 ", damage, " 点伤害"], DebugLog.CATEGORY_COMBAT)
 		
 		# 显示伤害数字
 		if body.has_method("show_damage_number"):
@@ -286,7 +287,7 @@ func handle_heal_collision(body: Node2D) -> void:
 	# 治疗技能
 	if body.has_method("heal"):
 		body.heal(damage)  # 对于治疗技能，使用damage作为治疗量
-		print("治疗技能命中 ", body.name, "! 恢复 ", damage, " 点生命值")
+		DebugLog.debug(["治疗技能命中 ", body.name, "! 恢复 ", damage, " 点生命值"], DebugLog.CATEGORY_COMBAT)
 		queue_free()
 
 func create_impact_effect(color: Color = Color.WHITE) -> void:
@@ -337,11 +338,11 @@ func is_obstacle_collision(body: Node2D) -> bool:
 	
 	if is_blocking:
 		if is_wall:
-			print("✅ 确认为房间墙壁: ", body.name)
+			DebugLog.debug(["✅ 确认为房间墙壁: ", body.name], DebugLog.CATEGORY_COMBAT)
 		else:
-			print("✅ 确认为障碍物: ", body.name)
+			DebugLog.debug(["✅ 确认为障碍物: ", body.name], DebugLog.CATEGORY_COMBAT)
 	else:
-		print("❌ 不是障碍物或墙壁: ", body.name, " 类型: ", body.get_class())
+		DebugLog.debug(["❌ 不是障碍物或墙壁: ", body.name, " 类型: ", body.get_class()], DebugLog.CATEGORY_COMBAT)
 	
 	return is_blocking
 
@@ -355,15 +356,15 @@ func handle_obstacle_collision(body: Node2D) -> void:
 	elif body.has_method("get_obstacle_type"):
 		collision_type = body.get_obstacle_type()
 	
-	print("🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type)
+	DebugLog.debug(["🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type], DebugLog.CATEGORY_COMBAT)
 	
 	# 🌪️ 特殊技能（龙卷风、声波）穿透障碍物和墙壁，继续飞行
 	if skill_type in ["tornado", "sonic_wave"]:
-		print("  ✈️ ", skill_type, " 穿透阻挡物，继续飞行")
+		DebugLog.debug(["  ✈️ ", skill_type, " 穿透阻挡物，继续飞行"], DebugLog.CATEGORY_COMBAT)
 		return  # 不销毁，继续飞行
 	
 	# 其他技能：销毁弹道
-	print("  💥 弹道被阻挡，销毁")
+	DebugLog.debug(["  💥 弹道被阻挡，销毁"], DebugLog.CATEGORY_COMBAT)
 	
 	# 延迟禁用碰撞检测，避免物理引擎冲突
 	set_deferred("monitoring", false)
@@ -378,17 +379,17 @@ func handle_obstacle_collision(body: Node2D) -> void:
 func apply_knockback(target: Node2D) -> void:
 	"""对目标应用击退效果"""
 	if not target.has_method("move_and_collide"):
-		print("  ⚠️ 目标无法被击退: ", target.name)
+		DebugLog.warning(["目标无法被击退: ", target.name], DebugLog.CATEGORY_COMBAT)
 		return
 	
 	if not has_meta("knockback_distance") or not has_meta("knockback_direction"):
-		print("  ⚠️ 缺少击退参数")
+		DebugLog.warning(["缺少击退参数"], DebugLog.CATEGORY_COMBAT)
 		return
 	
 	var kb_distance = get_meta("knockback_distance")
 	var kb_direction = get_meta("knockback_direction")
 	
-	print("  💥 击退 ", target.name, " 方向: ", kb_direction, " 距离: ", kb_distance)
+	DebugLog.debug(["  💥 击退 ", target.name, " 方向: ", kb_direction, " 距离: ", kb_distance], DebugLog.CATEGORY_COMBAT)
 	
 	# 使用Tween实现平滑击退
 	var tween = create_tween()

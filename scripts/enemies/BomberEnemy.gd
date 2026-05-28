@@ -120,9 +120,11 @@ func setup_visuals() -> void:
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	
-	if is_dead or not current_target:
+	if not can_process_enemy_ai() or not current_target:
+		velocity = Vector2.ZERO
 		return
 	
+	velocity = Vector2.ZERO
 	var distance_to_target = get_distance_to(current_target)
 	
 	# 检查是否在引爆范围内

@@ -1,6 +1,7 @@
 ﻿extends Control
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 const Styles = preload("res://scripts/ui/UIStyleFactory.gd")
 
 var player = null
@@ -95,6 +96,8 @@ var pause_button: Button
 var pause_panel: Panel
 var is_user_paused: bool = false  # 用户手动暂停
 var is_reward_paused: bool = false  # 奖励系统暂停
+var ui_refresh_interval: float = 0.1
+var ui_refresh_elapsed: float = 0.0
 
 func _ready() -> void:
 	# 延迟初始化，确保场景树完全准备好
@@ -113,10 +116,13 @@ func _ready() -> void:
 	create_minimap()
 	create_silver_key_display()
 	setup_dungeon_reference()
-	
+
 	# 连接玩家的银钥匙变化信号
 	if player and player.has_signal("silver_key_changed"):
 		player.silver_key_changed.connect(_on_silver_key_changed)
+
+	update_skill_ui()
+	update_player_status_ui()
 
 func _input(event: InputEvent) -> void:
 	"""处理UI快捷键输入"""
@@ -189,7 +195,11 @@ func _on_skill_button_pressed(skill_id: int) -> void:
 	if player and player.state_manager:
 		player.state_manager.handle_skill_key_input(skill_id)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	ui_refresh_elapsed += delta
+	if ui_refresh_elapsed < ui_refresh_interval:
+		return
+	ui_refresh_elapsed = 0.0
 	update_skill_ui()
 	update_player_status_ui()
 
@@ -317,7 +327,7 @@ func _on_area_changed(area_type: String, area_id: String) -> void:
 		update_player_position_on_minimap()  # 更新玩家在通道中的位置
 		# 显示通道（移除迷雾）
 		reveal_corridor(area_id)
-		print("UI更新通道状态: ", area_id)
+		DebugLog.debug(["UI更新通道状态: ", area_id], DebugLog.CATEGORY_UI)
 	elif area_type == "room":
 		# 玩家进入或回到房间，更新房间状态显示
 		if dungeon_generator and dungeon_generator.current_room:
@@ -332,7 +342,7 @@ func _on_area_changed(area_type: String, area_id: String) -> void:
 				if room_coord in minimap_rooms:
 					var room_rect = minimap_rooms[room_coord]
 					update_minimap_room_color(room_rect, room_coord)
-			print("UI更新房间状态: ", area_id)
+			DebugLog.debug(["UI更新房间状态: ", area_id], DebugLog.CATEGORY_UI)
 
 func show_corridor_status(corridor_id: String) -> void:
 	# 显示通道状态信息
@@ -349,7 +359,7 @@ func show_corridor_status(corridor_id: String) -> void:
 		enemy_counter_label.text = "💙 通道: 无敌人"
 		enemy_counter_label.modulate = Color.CYAN
 	
-	print("UI显示通道状态: ", corridor_id)
+	DebugLog.debug(["UI显示通道状态: ", corridor_id], DebugLog.CATEGORY_UI)
 
 func initialize_minimap() -> void:
 	if not dungeon_generator:
@@ -419,7 +429,7 @@ func initialize_minimap() -> void:
 	# 更新玩家位置
 	update_player_position_on_minimap()
 	
-	print("🗺️ 小地图初始化完成（迷雾探索模式）")
+	DebugLog.info(["🗺️ 小地图初始化完成（迷雾探索模式）"], DebugLog.CATEGORY_UI)
 
 func create_minimap_corridors() -> void:
 	if not dungeon_generator:
@@ -481,7 +491,7 @@ func create_minimap_corridors() -> void:
 			
 			minimap_container.add_child(corridor_rect)
 			minimap_corridors[corridor_id] = corridor_rect
-			print("创建小地图通道: ", corridor_id, " 位置: ", corridor_rect.position, " 大小: ", corridor_rect.size)
+			DebugLog.debug(["创建小地图通道: ", corridor_id, " 位置: ", corridor_rect.position, " 大小: ", corridor_rect.size], DebugLog.CATEGORY_UI)
 
 func update_minimap_room_color(room_rect: ColorRect, room_coord: Vector2i) -> void:
 	if not dungeon_generator:
@@ -516,7 +526,7 @@ func reveal_room(room_coord: Vector2i) -> void:
 		# 显示连接到这个房间的通道
 		reveal_corridors_connected_to_room(room_coord)
 		
-		print("🗺️ 显示房间: ", room_coord)
+		DebugLog.debug(["🗺️ 显示房间: ", room_coord], DebugLog.CATEGORY_UI)
 
 func reveal_corridors_connected_to_room(room_coord: Vector2i) -> void:
 	"""显示连接到指定房间的所有通道"""
@@ -542,7 +552,7 @@ func reveal_corridor(corridor_id: String) -> void:
 		var corridor_rect = minimap_corridors[corridor_id]
 		corridor_rect.visible = true
 		discovered_corridors[corridor_id] = true
-		print("🗺️ 显示通道: ", corridor_id)
+		DebugLog.debug(["🗺️ 显示通道: ", corridor_id], DebugLog.CATEGORY_UI)
 
 func add_golden_key_icon_to_boss_room() -> void:
 	"""为BOSS房间添加金钥匙图标"""
@@ -569,9 +579,9 @@ func add_golden_key_icon_to_boss_room() -> void:
 		key_icon.z_index = 5  # 在房间和玩家指示器之间
 		
 		boss_room_rect.add_child(key_icon)
-		print("🏆 BOSS房间添加金钥匙图标")
+		DebugLog.info(["🏆 BOSS房间添加金钥匙图标"], DebugLog.CATEGORY_UI)
 	else:
-		print("⚠️ 无法加载金钥匙贴图")
+		DebugLog.warning(["无法加载金钥匙贴图"], DebugLog.CATEGORY_UI)
 
 func update_player_position_on_minimap() -> void:
 	if not dungeon_generator or not player_indicator:
@@ -599,7 +609,7 @@ func update_player_position_on_minimap() -> void:
 			player_indicator.color = Color.CYAN  # 通道中为青色
 
 func _on_room_exploration_completed(room_id: Vector2i) -> void:
-	print("UI: 房间 ", room_id, " 探索完成!")
+	DebugLog.info(["UI: 房间 ", room_id, " 探索完成!"], DebugLog.CATEGORY_UI)
 	
 	# 更新当前房间状态显示
 	if dungeon_generator and dungeon_generator.current_room:
@@ -633,7 +643,7 @@ func _on_enemy_count_changed(_room_id: Vector2i, enemy_count: int) -> void:
 		else:
 			enemy_counter_label.text = "💀 敌人: 已清除"
 			enemy_counter_label.modulate = Color.GREEN
-	print("UI敌人计数更新: ", enemy_count)
+	DebugLog.debug(["UI敌人计数更新: ", enemy_count], DebugLog.CATEGORY_UI)
 
 func update_room_status_display(room) -> void:
 	if not room or not room_status_label or not enemy_counter_label:
@@ -667,7 +677,7 @@ func update_room_status_display(room) -> void:
 		enemy_counter_label.modulate = Color.GREEN
 		
 	# 调试信息
-	print("UI更新 - 房间: ", room.room_id, ", 状态: ", status_text, ", 敌人: ", room.alive_enemy_count)
+	DebugLog.debug(["UI更新 - 房间: ", room.room_id, ", 状态: ", status_text, ", 敌人: ", room.alive_enemy_count], DebugLog.CATEGORY_UI)
 
 func create_room_status_panel() -> void:
 	# 创建房间状态显示面板（右上角，暂停按钮下方）
@@ -704,7 +714,7 @@ func create_room_status_panel() -> void:
 	room_status_panel.add_child(vbox)
 	add_child(room_status_panel)
 	
-	print("房间状态面板已创建")
+	DebugLog.info(["房间状态面板已创建"], DebugLog.CATEGORY_UI)
 
 func connect_room_signals() -> void:
 	# 为所有房间连接敌人死亡信号
@@ -1044,14 +1054,14 @@ func create_silver_key_display() -> void:
 		if player_info:
 			# 添加到PlayerInfo容器中
 			player_info.add_child(silver_key_label)
-			print("  ✓ 银钥匙显示已创建并添加到PlayerInfo")
+			DebugLog.debug(["  ✓ 银钥匙显示已创建并添加到PlayerInfo"], DebugLog.CATEGORY_UI)
 		else:
 			# 如果找不到PlayerInfo，直接添加到StatusPanel
 			silver_key_label.position = Vector2(10, 65)
 			status_panel.add_child(silver_key_label)
-			print("  ✓ 银钥匙显示已创建并添加到StatusPanel")
+			DebugLog.debug(["  ✓ 银钥匙显示已创建并添加到StatusPanel"], DebugLog.CATEGORY_UI)
 	else:
-		print("  ⚠️ 找不到StatusPanel，无法添加银钥匙显示")
+		DebugLog.warning(["找不到StatusPanel，无法添加银钥匙显示"], DebugLog.CATEGORY_UI)
 	
 	# 初始更新显示
 	if player:
@@ -1192,7 +1202,7 @@ func _on_pause_button_pressed() -> void:
 	is_user_paused = true
 	get_tree().paused = true
 	pause_panel.visible = true
-	print("⏸️ 用户手动暂停游戏")
+	DebugLog.info(["⏸️ 用户手动暂停游戏"], DebugLog.CATEGORY_UI)
 
 func _on_continue_game_pressed() -> void:
 	"""处理继续游戏按钮"""
@@ -1203,15 +1213,15 @@ func _on_continue_game_pressed() -> void:
 	# 如果奖励面板关闭，恢复游戏
 	if is_reward_paused and is_skill_reward_open:
 		# 回到奖励选择界面，游戏仍暂停
-		print("⏸️ 回到技能奖励选择界面")
+		DebugLog.info(["⏸️ 回到技能奖励选择界面"], DebugLog.CATEGORY_UI)
 	else:
 		# 完全恢复游戏
 		get_tree().paused = false
-		print("▶️ 恢复游戏")
+		DebugLog.info(["▶️ 恢复游戏"], DebugLog.CATEGORY_UI)
 
 func _on_restart_game_pressed() -> void:
 	"""处理重新开始按钮 - 完全重新开始游戏"""
-	print("🔄 完全重新开始游戏")
+	DebugLog.info(["🔄 完全重新开始游戏"], DebugLog.CATEGORY_UI)
 	
 	# 重置暂停状态
 	is_user_paused = false
@@ -1229,7 +1239,7 @@ func _on_restart_game_pressed() -> void:
 
 func _on_return_to_menu_pressed() -> void:
 	"""处理返回主菜单按钮"""
-	print("🏠 返回主菜单")
+	DebugLog.info(["🏠 返回主菜单"], DebugLog.CATEGORY_UI)
 	
 	# 重置暂停状态
 	is_user_paused = false
@@ -1243,7 +1253,7 @@ var current_chest: Node = null  # 当前触发奖励的宝箱
 
 func show_chest_reward_selection(chest: Node) -> void:
 	"""显示宝箱奖励选择（由宝箱调用）"""
-	print("📦 显示宝箱奖励选择界面")
+	DebugLog.info(["📦 显示宝箱奖励选择界面"], DebugLog.CATEGORY_UI)
 	current_chest = chest
 	show_skill_reward_selection()
 
@@ -1255,7 +1265,7 @@ func show_skill_reward_selection() -> void:
 	# 获取未拥有的技能
 	var unowned_skills = skill_manager.get_unowned_skills()
 	if unowned_skills.is_empty():
-		print("🎁 玩家已拥有所有技能，无奖励可提供")
+		DebugLog.info(["🎁 玩家已拥有所有技能，无奖励可提供"], DebugLog.CATEGORY_UI)
 		return
 	
 	# 标记为奖励暂停
@@ -1341,7 +1351,7 @@ func show_skill_reward_selection() -> void:
 	is_skill_reward_open = true
 	skill_reward_panel.visible = true
 	
-	print("🎁 显示技能奖励选择，可选技能: ", reward_options)
+	DebugLog.info(["🎁 显示技能奖励选择，可选技能: ", reward_options], DebugLog.CATEGORY_UI)
 
 func _on_reward_skill_button_clicked(skill_id: String) -> void:
 	"""处理技能按钮点击（选择但未确认）"""
@@ -1367,7 +1377,7 @@ func _on_reward_skill_button_clicked(skill_id: String) -> void:
 	reward_confirm_button.modulate = Color.WHITE
 	reward_confirm_button.text = "✅ 确认选择: " + skill_manager.get_skill_info_by_id(skill_id).name
 	
-	print("🎯 选择技能: ", skill_id, "（未确认）")
+	DebugLog.debug(["🎯 选择技能: ", skill_id, "（未确认）"], DebugLog.CATEGORY_UI)
 
 func _on_reward_confirmed() -> void:
 	"""处理确认奖励选择"""
@@ -1376,7 +1386,7 @@ func _on_reward_confirmed() -> void:
 	
 	if selected_reward_skill == "skip":
 		# 确认放弃奖励
-		print("🎁 确认放弃奖励")
+		DebugLog.info(["🎁 确认放弃奖励"], DebugLog.CATEGORY_UI)
 	else:
 		# 添加到技能库
 		if skill_manager.add_skill_to_library(selected_reward_skill):
@@ -1384,7 +1394,7 @@ func _on_reward_confirmed() -> void:
 			if skill_manager.get_active_skill_count() < 4:
 				var slot = skill_manager.auto_activate_skill(selected_reward_skill)
 				if slot >= 0:
-					print("🔥 新技能自动激活到槽位 ", slot + 1)
+					DebugLog.info(["🔥 新技能自动激活到槽位 ", slot + 1], DebugLog.CATEGORY_UI)
 					# 刷新技能UI
 					setup_skill_buttons()
 			
@@ -1392,9 +1402,9 @@ func _on_reward_confirmed() -> void:
 			if is_skill_swap_open:
 				refresh_skill_swap_panel()
 			
-			print("🎁 确认获得技能奖励: ", selected_reward_skill)
+			DebugLog.info(["🎁 确认获得技能奖励: ", selected_reward_skill], DebugLog.CATEGORY_UI)
 		else:
-			print("❌ 技能奖励添加失败: ", selected_reward_skill)
+			DebugLog.warning(["技能奖励添加失败: ", selected_reward_skill], DebugLog.CATEGORY_UI)
 	
 	# 关闭奖励面板
 	hide_skill_reward_panel()
@@ -1414,7 +1424,7 @@ func _on_skip_reward_button_clicked() -> void:
 	reward_confirm_button.modulate = Color.WHITE
 	reward_confirm_button.text = "✅ 确认放弃奖励"
 	
-	print("🎯 选择放弃奖励（未确认）")
+	DebugLog.debug(["🎯 选择放弃奖励（未确认）"], DebugLog.CATEGORY_UI)
 
 
 func hide_skill_reward_panel() -> void:
@@ -1427,7 +1437,7 @@ func hide_skill_reward_panel() -> void:
 	if current_chest and is_instance_valid(current_chest):
 		if current_chest.has_method("open_chest"):
 			current_chest.open_chest()
-			print("📦 通知宝箱完成奖励选择，宝箱已开启")
+			DebugLog.info(["📦 通知宝箱完成奖励选择，宝箱已开启"], DebugLog.CATEGORY_UI)
 	current_chest = null
 	
 	# 清除奖励暂停状态

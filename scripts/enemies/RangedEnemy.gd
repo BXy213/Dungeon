@@ -132,6 +132,9 @@ func _find_target():
 			current_target = null
 
 func _process(delta: float) -> void:
+	if not can_process_enemy_ai():
+		return
+
 	# 更新游走计时器
 	strafe_timer -= delta
 	if strafe_timer <= 0:
@@ -140,25 +143,29 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-	if not is_dead and current_target:
-		var distance_to_target = get_distance_to(current_target)
-		
-		# 距离管理和攻击逻辑
-		if distance_to_target <= max_distance and distance_to_target >= min_distance:
-			# 在理想距离内 - 攻击并游走
-			if can_attack():
-				perform_attack(current_target.global_position, current_target)
-				print("🏹 远程小兵发起攻击!")
-			perform_strafe_movement()
-		elif distance_to_target < min_distance:
-			# 太近 - 后退
-			perform_retreat_movement()
-		elif distance_to_target > max_distance:
-			# 太远 - 接近
-			perform_approach_movement()
-		
-		# 应用移动
-		move_and_slide()
+	if not can_process_enemy_ai() or not current_target:
+		velocity = Vector2.ZERO
+		return
+
+	velocity = Vector2.ZERO
+	var distance_to_target = get_distance_to(current_target)
+
+	# 距离管理和攻击逻辑
+	if distance_to_target <= max_distance and distance_to_target >= min_distance:
+		# 在理想距离内 - 攻击并游走
+		if can_attack():
+			perform_attack(current_target.global_position, current_target)
+			print("🏹 远程小兵发起攻击!")
+		perform_strafe_movement()
+	elif distance_to_target < min_distance:
+		# 太近 - 后退
+		perform_retreat_movement()
+	elif distance_to_target > max_distance:
+		# 太远 - 接近
+		perform_approach_movement()
+
+	# 应用移动
+	move_and_slide()
 
 ## ========== 移动方法 ==========
 

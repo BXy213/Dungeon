@@ -128,20 +128,24 @@ func _find_target():
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-	if not is_dead and current_target:
-		var distance_to_target = get_distance_to(current_target)
-		
-		if distance_to_target <= attack_range * 1.3:
-			# 在攻击范围内 - 攻击
-			if can_attack():
-				perform_elite_attack()
-			
-			# 检查毒攻击
-			if can_use_poison_attack() and distance_to_target <= poison_attack_range:
-				perform_poison_attack()
-		else:
-			# 不在攻击范围内 - 预测性追击
-			perform_predictive_chase()
+	if not can_process_enemy_ai() or not current_target:
+		velocity = Vector2.ZERO
+		return
+
+	velocity = Vector2.ZERO
+	var distance_to_target = get_distance_to(current_target)
+
+	if distance_to_target <= attack_range * 1.3:
+		# 在攻击范围内 - 攻击
+		if can_attack():
+			perform_elite_attack()
+
+		# 检查毒攻击
+		if can_use_poison_attack() and distance_to_target <= poison_attack_range:
+			perform_poison_attack()
+	else:
+		# 不在攻击范围内 - 预测性追击
+		perform_predictive_chase()
 
 ## ========== 移动方法 ==========
 

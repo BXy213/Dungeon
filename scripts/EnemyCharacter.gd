@@ -2,6 +2,7 @@
 extends CharacterBase
 
 const Constants = preload("res://scripts/core/GameConstants.gd")
+const DebugLog = preload("res://scripts/core/DebugLog.gd")
 
 # 🦹 敌人角色基类 - 继承自CharacterBase，提供敌人通用功能
 
@@ -62,7 +63,7 @@ func post_ready_setup() -> void:
 	# 更新血条（延迟执行，确保节点已创建）
 	call_deferred("update_health_bar")
 	
-	print("👹 敌人基类初始化完成: ", character_name)
+	DebugLog.debug(["👹 敌人基类初始化完成: ", character_name], DebugLog.CATEGORY_AI)
 
 ## ========== 抽象方法（子类必须实现） ==========
 
@@ -72,15 +73,23 @@ func setup_ai_controller() -> void:
 
 func setup_visuals() -> void:
 	"""设置敌人视觉效果（子类实现）"""
-	print("⚠️ setup_visuals() 应该由子类实现")
+	DebugLog.warning(["setup_visuals() 应该由子类实现"], DebugLog.CATEGORY_AI)
+
+func _physics_process(_delta: float) -> void:
+	# Enemy subclasses own AI movement and call move_and_slide() after setting velocity.
+	if is_dead or is_stunned:
+		velocity = Vector2.ZERO
+
+func can_process_enemy_ai() -> bool:
+	return not is_dead and not is_stunned
 
 func execute_attack_behavior() -> void:
 	"""执行攻击行为（子类实现）"""
-	print("⚠️ execute_attack_behavior() 应该由子类实现")
+	DebugLog.warning(["execute_attack_behavior() 应该由子类实现"], DebugLog.CATEGORY_AI)
 
 func execute_chase_behavior() -> void:
 	"""执行追击行为（子类实现）"""
-	print("⚠️ execute_chase_behavior() 应该由子类实现")
+	DebugLog.warning(["execute_chase_behavior() 应该由子类实现"], DebugLog.CATEGORY_AI)
 
 ## ========== 智能寻路系统（射线检测避障） ==========
 
@@ -214,19 +223,19 @@ func launch_projectile(target_pos: Vector2, _target: Node = null) -> void:
 	- execute_attack(): 改变攻击方式（如近战直接伤害）
 	- set_projectile_appearance(): 改变弹道外观
 	"""
-	print("🚀 ", character_name, " 发射弹道 → 目标: ", target_pos, " 伤害: ", current_attack_damage)
+	DebugLog.debug(["🚀 ", character_name, " 发射弹道 → 目标: ", target_pos, " 伤害: ", current_attack_damage], DebugLog.CATEGORY_COMBAT)
 	
 	# 房间ID验证 - 只在当前房间创建弹道
 	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
 	if dungeon_generator:
 		var current_room_id = dungeon_generator.get_current_room_coord()
 		if room_id != current_room_id:
-			print("    ❌ 敌人不在当前房间，跳过攻击")
+			DebugLog.debug(["敌人不在当前房间，跳过攻击"], DebugLog.CATEGORY_COMBAT)
 			return
 	
 	# 创建攻击弹道
 	create_attack_projectile(target_pos)
-	print("  ✅ 弹道已添加到场景")
+	DebugLog.debug(["弹道已添加到场景"], DebugLog.CATEGORY_COMBAT)
 
 func create_attack_projectile(target_pos: Vector2) -> void:
 	"""
@@ -341,12 +350,12 @@ func take_damage(amount: int, source: Node = null) -> void:
 			if game_manager and game_manager.has_method("record_damage"):
 				game_manager.record_damage(amount)
 			else:
-				print("⚠️ 未找到GameManager或record_damage方法")
+				DebugLog.warning(["未找到GameManager或record_damage方法"], DebugLog.CATEGORY_COMBAT)
 		else:
 			var source_name: String = "null"
 			if source:
 				source_name = source.name
-			print("⚠️ 伤害来源不是玩家: ", source_name)
+			DebugLog.debug(["伤害来源不是玩家: ", source_name], DebugLog.CATEGORY_COMBAT)
 	
 	if is_dead:
 		return
@@ -472,7 +481,7 @@ func die() -> void:
 	"""敌人死亡"""
 	# 检查是否是BOSS（在调用super.die()之前处理金钥匙掉落）
 	if character_name == "BOSS":
-		print("🎉 检测到BOSS死亡！将掉落金钥匙...")
+		DebugLog.info(["🎉 检测到BOSS死亡！将掉落金钥匙..."], DebugLog.CATEGORY_COMBAT)
 		drop_golden_key()
 	
 	super.die()
@@ -514,12 +523,12 @@ func drop_rewards() -> void:
 
 func drop_loot() -> void:
 	"""掉落物品（待实现）"""
-	print("💎 ", character_name, " 掉落了物品!")
+	DebugLog.info(["💎 ", character_name, " 掉落了物品!"], DebugLog.CATEGORY_COMBAT)
 	# TODO: 实现物品掉落系统
 
 func drop_silver_key() -> void:
 	"""掉落银钥匙"""
-	print("🔑 ", character_name, " 掉落银钥匙！位置: ", global_position)
+	DebugLog.info(["🔑 ", character_name, " 掉落银钥匙！位置: ", global_position], DebugLog.CATEGORY_COMBAT)
 	
 	# ⚠️ 使用 call_deferred 延迟添加，避免在物理查询期间修改物理状态
 	var drop_position = global_position
@@ -538,13 +547,13 @@ func _deferred_drop_silver_key(drop_position: Vector2) -> void:
 	var game_scene = get_tree().current_scene
 	if game_scene:
 		game_scene.add_child(silver_key)
-		print("  ✓ 银钥匙已添加到场景")
+		DebugLog.debug(["银钥匙已添加到场景"], DebugLog.CATEGORY_COMBAT)
 	else:
-		print("  ⚠️ 无法找到游戏场景，银钥匙添加失败")
+		DebugLog.warning(["无法找到游戏场景，银钥匙添加失败"], DebugLog.CATEGORY_COMBAT)
 
 func drop_golden_key() -> void:
 	"""掉落金钥匙（BOSS专属）"""
-	print("🏆 ", character_name, " 掉落金钥匙！位置: ", global_position)
+	DebugLog.info(["🏆 ", character_name, " 掉落金钥匙！位置: ", global_position], DebugLog.CATEGORY_COMBAT)
 	
 	# ⚠️ 使用 call_deferred 延迟添加，避免在物理查询期间修改物理状态
 	var drop_position = global_position
@@ -563,15 +572,15 @@ func _deferred_drop_golden_key(drop_position: Vector2) -> void:
 	var game_scene = get_tree().current_scene
 	if game_scene:
 		game_scene.add_child(golden_key)
-		print("  ✓ 金钥匙已添加到场景")
+		DebugLog.debug(["金钥匙已添加到场景"], DebugLog.CATEGORY_COMBAT)
 	else:
-		print("  ⚠️ 无法找到游戏场景，金钥匙添加失败")
+		DebugLog.warning(["无法找到游戏场景，金钥匙添加失败"], DebugLog.CATEGORY_COMBAT)
 
 func notify_room_enemy_death() -> void:
 	"""通知房间敌人死亡"""
 	if is_room_enemy:
 		# 新系统使用character_died信号自动处理，无需手动通知
-		print("🏠 敌人 ", character_name, " 在房间 ", room_id, " 中死亡，通过信号系统处理")
+		DebugLog.debug(["🏠 敌人 ", character_name, " 在房间 ", room_id, " 中死亡，通过信号系统处理"], DebugLog.CATEGORY_COMBAT)
 
 ## ========== 敌人通用技能系统 ==========
 
@@ -581,12 +590,12 @@ func cast_enemy_skill(skill_name: String, _target: Node = null) -> void:
 		"heal_self":
 			cast_heal_skill()
 		_:
-			print("⚠️ 基类不支持技能: ", skill_name, "，应由子类实现")
+			DebugLog.warning(["基类不支持技能: ", skill_name, "，应由子类实现"], DebugLog.CATEGORY_AI)
 
 func cast_heal_skill() -> void:
 	"""释放自我治疗技能"""
 	heal(30)
-	print("🩹 ", character_name, " 释放自我治疗!")
+	DebugLog.info(["🩹 ", character_name, " 释放自我治疗!"], DebugLog.CATEGORY_COMBAT)
 
 ## ========== 敌人通用AI接口方法 ==========
 
@@ -629,7 +638,7 @@ func get_current_room_bounds() -> Rect2:
 		current_room = get_parent().get_parent()
 	
 	if not current_room:
-		print("⚠️ 无法找到当前房间，使用默认边界")
+		DebugLog.warning(["无法找到当前房间，使用默认边界"], DebugLog.CATEGORY_AI)
 		return Rect2(0, 0, 1152, 648)  # 默认房间大小
 	
 	# 获取房间的全局位置和大小

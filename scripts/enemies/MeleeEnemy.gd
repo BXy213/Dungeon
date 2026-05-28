@@ -120,23 +120,27 @@ func _find_target():
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-	if not is_dead and current_target:
-		var distance_to_target = get_distance_to(current_target)
-		
-		if distance_to_target <= attack_range:
-			# 在攻击范围内 - 攻击
-			if can_attack():
-				perform_attack(current_target.global_position, current_target)
-				print("🗡️ 近战小兵发起攻击!")
-				
-				# 攻击后稍微后退
-				var retreat_direction = (global_position - current_target.global_position).normalized()
-				move_towards(global_position + retreat_direction * 20, 0.5)
-				move_and_slide()
-		else:
-			# 不在攻击范围内 - 使用智能寻路追击
-			navigate_to_target(current_target.global_position)
+	if not can_process_enemy_ai() or not current_target:
+		velocity = Vector2.ZERO
+		return
+
+	velocity = Vector2.ZERO
+	var distance_to_target = get_distance_to(current_target)
+
+	if distance_to_target <= attack_range:
+		# 在攻击范围内 - 攻击
+		if can_attack():
+			perform_attack(current_target.global_position, current_target)
+			print("🗡️ 近战小兵发起攻击!")
+
+			# 攻击后稍微后退
+			var retreat_direction = (global_position - current_target.global_position).normalized()
+			move_towards(global_position + retreat_direction * 20, 0.5)
 			move_and_slide()
+	else:
+		# 不在攻击范围内 - 使用智能寻路追击
+		navigate_to_target(current_target.global_position)
+		move_and_slide()
 
 ## ========== 攻击方法 ==========
 
