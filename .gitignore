@@ -2,6 +2,40 @@
 .godot/
 /android/
 
+# Godot import cache (Godot 3 / 旧版本生成的目录)
+.import/
+
+# 自动从 CSV 生成的翻译文件
+*.translation
+
+# 导出输出目录与构建产物
+/build/
+/builds/
+/export/
+*.exe
+*.pck
+*.apk
+*.aab
+*.dmg
+*.zip
+
+# 导出预设可能包含 keystore 密码等敏感信息，按需取消注释
+# export_presets.cfg
+
+# Mono / C# 相关
+.mono/
+data_*/
+mono_crash.*.json
+
+# 编辑器与 IDE
+.vscode/
+.idea/
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
 # Codex project-context-maintainer local files
 /.codex/
 /AGENTS.md
