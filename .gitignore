@@ -38,3 +38,8 @@ desktop.ini
 
 # Codex project-context-maintainer 内部数据（AGENTS.md 与 docs 下的说明文件已纳入版本控制，随分支同步）
 /.codex/
+
+# docs 下默认只跟踪项目说明文档，其余（计划/草稿等 .md）不纳入版本控制
+/docs/*.md
+!/docs/PROJECT_CONTEXT.md
+!/docs/PROJECT_SNAPSHOT.md
