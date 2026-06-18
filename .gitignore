@@ -36,8 +36,5 @@ mono_crash.*.json
 Thumbs.db
 desktop.ini
 
-# Codex project-context-maintainer local files
+# Codex project-context-maintainer 内部数据（AGENTS.md 与 docs 下的说明文件已纳入版本控制，随分支同步）
 /.codex/
-/AGENTS.md
-/docs/PROJECT_CONTEXT.md
-/docs/PROJECT_SNAPSHOT.md
