@@ -70,8 +70,8 @@ text = "🎯 游戏目标"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 16
-text = "• 找到金钥匙逃离地牢！
-• 探索地牢房间，消灭敌人，收集银钥匙，打开宝箱，获得技能，提升实力！"
+text = "• 击败王庭的敌人，取得金钥匙！
+• 探索营地，收集银钥匙，打开宝箱，获得技能；可以撤退或绕路挑战其他地点。"
 autowrap_mode = 3
 
 [node name="Spacer1" type="Control" parent="ScrollContainer/VBoxContainer"]
@@ -87,7 +87,7 @@ text = "🎮 基础操作"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 16
-text = "• WASD - 移动角色探索地牢
+text = "• WASD - 移动角色探索地图
 • 鼠标右键 - 释放普攻
 • ESC - 打开/关闭暂停菜单
 • B键 - 打开/关闭技能调配界面"

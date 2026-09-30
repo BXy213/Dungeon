@@ -67,6 +67,8 @@ func resume_game() -> void:
 
 func continue_game() -> void:
 	DebugLog.info(["继续游戏"], DebugLog.CATEGORY_GAME)
+	if is_instance_valid(player) and player.is_dead:
+		player.respawn()
 	
 	# 隐藏暂停面板
 	hide_death_panel()
@@ -81,27 +83,9 @@ func show_death_panel() -> void:
 ## ========== 胜利系统 ==========
 
 func connect_enemy_signals() -> void:
-	"""连接所有房间的敌人死亡信号"""
-	await get_tree().process_frame
-	
-	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
-	if dungeon_generator:
-		DebugLog.debug(["📊 GameManager: 开始连接房间信号，房间数: ", dungeon_generator.rooms.size()], DebugLog.CATEGORY_GAME)
-		for room in dungeon_generator.rooms.values():
-			if room:
-				# 连接房间的敌人死亡信号
-				if not room.enemy_died_in_room.is_connected(_on_enemy_killed):
-					room.enemy_died_in_room.connect(_on_enemy_killed)
-					DebugLog.debug(["  ✓ 已连接房间 ", room.room_id, " 的敌人死亡信号"], DebugLog.CATEGORY_GAME)
-				else:
-					DebugLog.debug(["  ⚠️ 房间 ", room.room_id, " 信号已连接"], DebugLog.CATEGORY_GAME)
-	else:
-		DebugLog.warning(["GameManager: 未找到DungeonGenerator"], DebugLog.CATEGORY_GAME)
-
-func _on_enemy_killed(_room_id: Vector2i, _remaining_enemies: int) -> void:
-	"""敌人被击杀时的回调"""
-	enemies_killed += 1
-	DebugLog.debug(["📊 统计更新：已击杀 ", enemies_killed, " 个敌人，总伤害: ", total_damage_dealt], DebugLog.CATEGORY_GAME)
+	var world = get_tree().current_scene.get_node_or_null(Constants.NODE_WORLD_MANAGER)
+	if world:
+		world.enemy_killed.connect(func(_point): enemies_killed += 1)
 
 func record_damage(damage: int) -> void:
 	"""记录造成的伤害"""
@@ -110,6 +94,8 @@ func record_damage(damage: int) -> void:
 
 func _on_boss_defeated() -> void:
 	"""BOSS被击败"""
+	if boss_defeated:
+		return
 	boss_defeated = true
 	DebugLog.info(["🎉 BOSS被击败！"], DebugLog.CATEGORY_GAME)
 	DebugLog.info(["📊 最终统计 - 击杀: ", enemies_killed, ", 伤害: ", total_damage_dealt], DebugLog.CATEGORY_GAME)
@@ -284,7 +270,7 @@ func _on_victory_restart_pressed() -> void:
 	# 恢复游戏状态（取消暂停）
 	resume_game()
 	
-	# ✅ 重新加载整个游戏场景（重新生成地牢、重置玩家状态）
+	# ✅ 重新加载整个游戏场景（重置世界状态、重置玩家状态）
 	get_tree().reload_current_scene()
 
 func _on_victory_menu_pressed() -> void:
@@ -309,16 +295,8 @@ func restart_game() -> void:
 	# 恢复游戏状态（取消暂停）
 	resume_game()
 	
-	# ✅ 重新加载整个游戏场景（重新生成地牢、重置玩家状态）
+	# ✅ 重新加载整个游戏场景（重置世界状态、重置玩家状态）
 	get_tree().reload_current_scene()
-
-func reset_all_enemies() -> void:
-	var enemies = get_tree().get_nodes_in_group(Constants.GROUP_ENEMIES)
-	for enemy in enemies:
-		if enemy:
-			# 重置敌人血量到满值
-			enemy.health = enemy.max_health
-			enemy.is_dead = false
 
 func return_to_main_menu() -> void:
 	DebugLog.info(["返回主菜单"], DebugLog.CATEGORY_GAME)

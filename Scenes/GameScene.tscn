@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://b6v2krx6mh1qj"]
+[gd_scene load_steps=8 format=3 uid="uid://b6v2krx6mh1qj"]
 
 [ext_resource type="PackedScene" uid="uid://3svcwv31yo7b" path="res://Scenes/Player.tscn" id="1_3mqji"]
 [ext_resource type="Script" uid="uid://cbi7vujbir64t" path="res://scripts/UIManager.gd" id="2_ui_manager"]
-[ext_resource type="Script" uid="uid://bdbb6w71woqby" path="res://scripts/DungeonGenerator.gd" id="3_dungeon_generator"]
+[ext_resource type="Script" path="res://scripts/world/WorldManager.gd" id="3_world"]
+[ext_resource type="PackedScene" path="res://Scenes/world/WorldMap.tscn" id="6_map"]
 [ext_resource type="PackedScene" uid="uid://bxrw8pd2qmqsr" path="res://Scenes/SkillIndicator.tscn" id="4_skill_indicator"]
 [ext_resource type="Script" uid="uid://de4m8x0728qp4" path="res://scripts/GameManager.gd" id="5_game_manager"]
 
@@ -30,10 +31,10 @@ func set_skill_state(state: String):
 [node name="Player" parent="." instance=ExtResource("1_3mqji")]
 position = Vector2(576, 324)
 
-[node name="DungeonGenerator" type="Node2D" parent="."]
-script = ExtResource("3_dungeon_generator")
-dungeon_width = 5
-dungeon_height = 5
+[node name="WorldManager" type="Node2D" parent="."]
+script = ExtResource("3_world")
+
+[node name="WorldMap" parent="WorldManager" instance=ExtResource("6_map")]
 
 [node name="SkillEffects" type="Node2D" parent="."]
 
@@ -559,7 +560,7 @@ horizontal_alignment = 1
 
 [node name="InstructionText" type="Label" parent="UI/DeathPanel/Panel/VBoxContainer"]
 layout_mode = 2
-text = "WASD移动探索地牢
+text = "WASD移动探索地图
 1234选择技能+左键释放
 右键普攻攻击敌人
 ESC取消技能选择"
@@ -569,6 +570,7 @@ autowrap_mode = 2
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("5_game_manager")
+enable_verbose_logs = false
 
 [connection signal="pressed" from="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer/ContinueButton" to="GameManager" method="continue_game"]
 [connection signal="pressed" from="UI/DeathPanel/Panel/VBoxContainer/ButtonContainer/RestartButton" to="GameManager" method="restart_game"]

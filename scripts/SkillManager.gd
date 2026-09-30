@@ -26,7 +26,7 @@ func _ready() -> void:
 		set_initial_skills(initial_skills)
 		DebugLog.info(["🎮 玩家初始技能: ", initial_skills], DebugLog.CATEGORY_SKILL)
 	else:
-		DebugLog.info(["🎮 玩家开始时没有任何技能，需要通过房间奖励获得"], DebugLog.CATEGORY_SKILL)
+		DebugLog.info(["🎮 玩家开始时没有任何技能，需要通过宝箱奖励获得"], DebugLog.CATEGORY_SKILL)
 
 # 🔧 简化初始技能设置函数
 func set_initial_skills(skill_ids: Array[String]) -> void:

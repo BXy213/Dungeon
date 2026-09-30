@@ -117,6 +117,9 @@ func setup_collision_size() -> void:
 ## ========== AI行为方法 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
@@ -265,9 +268,3 @@ func get_ai_description() -> String:
 	return "精英战士AI - 预测性追击，毒攻击技能，不撤退"
 
 ## ========== 静态工厂方法 ==========
-
-static func create_elite_enemy(enemy_room_id: Vector2i) -> EliteEnemy:
-	"""创建精英战士实例"""
-	var elite_enemy = EliteEnemy.new()
-	elite_enemy.room_id = enemy_room_id
-	return elite_enemy

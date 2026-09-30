@@ -355,39 +355,15 @@ func respawn() -> void:
 	# 重新启用输入
 	input_enabled = true
 	
-	# 移动到起始房间
-	move_to_start_room()
+	# 返回出生点
+	move_to_spawn()
 	
 	DebugLog.info(["🎮 玩家重生完成"], DebugLog.CATEGORY_PLAYER)
 
-func move_to_start_room() -> void:
-	"""移动到起始房间"""
-	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
-	if dungeon_generator:
-		var start_room = dungeon_generator.rooms.get(Vector2i(0, 0))
-		if start_room:
-			# 将玩家移动到起始房间中心
-			position = start_room.position + start_room.room_size / 2
-			DebugLog.info(["🏠 玩家重生到起始房间: ", start_room.room_id, " 位置: ", position], DebugLog.CATEGORY_PLAYER)
-			
-			# 如果当前房间不是起始房间，切换到起始房间
-			if dungeon_generator.current_room != start_room:
-				dungeon_generator.change_to_new_room(start_room)
-			else:
-				# 如果已经在起始房间，确保房间状态正确
-				dungeon_generator.current_room = start_room
-				DebugLog.debug(["🔄 玩家已在起始房间，重置房间状态"], DebugLog.CATEGORY_PLAYER)
-
-## ========== 相机管理 ==========
-
-func set_camera_limits(room_position: Vector2, room_size: Vector2) -> void:
-	"""设置相机限制（兼容性保留，实际由DungeonGenerator的全局限制管理）"""
-	if camera:
-		# 这个函数现在主要用于兼容性，实际的相机限制由DungeonGenerator统一设置
-		DebugLog.debug(["📷 相机限制设置请求 - 房间位置: ", room_position, " 尺寸: ", room_size], DebugLog.CATEGORY_PLAYER)
-		DebugLog.debug(["📷 实际相机限制由DungeonGenerator的全局设置管理"], DebugLog.CATEGORY_PLAYER)
-
-## ========== Buff系统集成 ==========
+func move_to_spawn() -> void:
+	var world = get_tree().current_scene.get_node_or_null(Constants.NODE_WORLD_MANAGER)
+	if world:
+		world.respawn_player()
 
 func apply_player_buff(buff_type: int, duration: float, strength: float = 1.0) -> void:
 	"""为玩家应用Buff"""

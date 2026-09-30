@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="MOBA类游戏Demo"
-config/description="地牢探险类MOBA游戏演示版本"
+config/description="开放地图与遭遇点战斗原型"
 run/main_scene="res://Scenes/MainScene.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -23,6 +23,12 @@ config/icon="res://icon.svg"
 [dotnet]
 
 project/assembly_name="MOBA类游戏Demo"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
 
 [input]
 

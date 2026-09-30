@@ -30,6 +30,9 @@ func execute_skill_effect(target_position: Vector2, _target_node: Node) -> void:
 	var direction = (target_position - player.global_position).normalized()
 	var distance = min(player.global_position.distance_to(target_position), blink_distance)
 	var blink_target = player.global_position + direction * distance
+	var world = player.get_tree().current_scene.get_node_or_null(Constants.NODE_WORLD_MANAGER)
+	if world:
+		blink_target = world.find_blink_position(player.global_position, blink_target)
 	
 	# 创建起始位置特效
 	var start_effect = create_skill_effect("instant", player.global_position)

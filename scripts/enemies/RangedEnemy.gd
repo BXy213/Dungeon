@@ -122,6 +122,9 @@ func setup_collision_size() -> void:
 ## ========== AI行为方法 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
@@ -223,11 +226,3 @@ func should_retreat() -> bool:
 func get_ai_description() -> String:
 	"""获取AI描述"""
 	return "远程小兵AI - 保持距离射击，侧移游走"
-
-## ========== 静态工厂方法 ==========
-
-static func create_ranged_enemy(enemy_room_id: Vector2i) -> RangedEnemy:
-	"""创建远程小兵实例"""
-	var ranged_enemy = RangedEnemy.new()
-	ranged_enemy.room_id = enemy_room_id
-	return ranged_enemy

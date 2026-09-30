@@ -4,11 +4,11 @@
 
 ## Metadata
 
-- Generated: 2026-06-15 06:44:44 UTC
+- Generated: 2026-09-30 03:14:46 UTC
 - Root: `Godot exp`
 - Detected project types: Godot
 - Git branch: `codex/world-map-encounters`
-- Git commit: `ac479a6`
+- Git commit: `788b006`
 
 ## Important Files
 
@@ -20,9 +20,11 @@
 
 - `.codex/` - 1 files
 - `art/` - 22 files
-- `docs/` - 3 files
-- `Scenes/` - 14 files
-- `scripts/` - 54 files
+- `docs/` - 5 files
+- `resources/` - 6 files
+- `Scenes/` - 16 files
+- `scripts/` - 58 files
+- `tests/` - 2 files
 - `.editorconfig`
 - `.gitattributes`
 - `.gitignore`
@@ -38,10 +40,11 @@
 
 | Extension | Type | Count |
 | --- | --- | ---: |
-| `.gd` | GDScript | 56 |
+| `.gd` | GDScript | 62 |
 | `.png` |  | 21 |
-| `.tscn` | Godot Scene | 15 |
-| `.md` | Markdown | 4 |
+| `.tscn` | Godot Scene | 17 |
+| `.md` | Markdown | 6 |
+| `.tres` | Godot Resource | 6 |
 | `[no extension]` |  | 3 |
 | `.json` | JSON | 1 |
 | `.webp` |  | 1 |
@@ -62,13 +65,15 @@
 - `Scenes/MainScene.tscn` - root `MainMenu` (Control)
 - `Scenes/Obstacle.tscn` - root `Obstacle` (StaticBody2D)
 - `Scenes/Player.tscn` - root `Player` (CharacterBody2D)
-- `Scenes/Room.tscn` - root `Room` (Node2D)
 - `Scenes/ShockwaveSkill.tscn` - root `ShockwaveEffect` (Area2D)
 - `Scenes/SilverKey.tscn` - root `SilverKey` (Area2D)
 - `Scenes/SkillEffect.tscn` - root `SkillEffect` (Area2D)
 - `Scenes/SkillIndicator.tscn` - root `SkillIndicator` (Node2D)
 - `Scenes/SonicWaveSkill.tscn` - root `ShockwaveEffect` (Area2D)
 - `Scenes/TornadoSkill.tscn` - root `TornadoEffect` (Area2D)
+- `Scenes/world/EncounterPoint.tscn` - root `EncounterPoint` (Node2D)
+- `Scenes/world/WorldMap.tscn` - root `WorldMap` (Node2D)
+- `Scenes/WorldTestScene.tscn`
 
 ### GDScript Files
 
@@ -79,7 +84,6 @@
 - `scripts/core/DebugLog.gd` - class `DebugLog`; extends `RefCounted`
 - `scripts/core/GameConstants.gd` - class `GameConstants`; extends `RefCounted`
 - `scripts/DamageNumber.gd` - extends `Label`; funcs `setup`, `animate_damage`
-- `scripts/DungeonGenerator.gd` - class `DungeonGenerator`; extends `Node2D`; signals `room_changed`, `room_exploration_completed`; exports `dungeon_width`, `dungeon_height`; funcs `make_set`, `find`, `union`, `connected`, `_ready`, `setup_player_reference`, `start_position_detection`, `generate_dungeon`
 - `scripts/enemies/BomberEnemy.gd` - class `BomberEnemy`; funcs `_init`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `_physics_process`, `_find_target`, `_detonate`, `_find_targets_in_explosion`
 - `scripts/enemies/BossEnemy.gd` - class `BossEnemy`; funcs `_init`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `setup_collision_size`, `_find_target`, `_process`, `_physics_process`
 - `scripts/enemies/EliteEnemy.gd` - class `EliteEnemy`; funcs `_init`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `setup_collision_size`, `_find_target`, `_physics_process`, `perform_predictive_chase`
@@ -87,7 +91,7 @@
 - `scripts/enemies/MeleeEnemy.gd` - class `MeleeEnemy`; funcs `_init`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `setup_collision_size`, `_find_target`, `_physics_process`, `set_projectile_appearance`
 - `scripts/enemies/RangedEnemy.gd` - class `RangedEnemy`; funcs `_init`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `setup_collision_size`, `_find_target`, `_process`, `_physics_process`
 - `scripts/enemies/SplitterEnemy.gd` - class `SplitterEnemy`; exports `split_count`, `is_mini_split`; funcs `_init`, `apply_mini_split_stats`, `_ready`, `setup_enemy_nodes`, `setup_visuals`, `_physics_process`, `_find_target`, `die`
-- `scripts/EnemyCharacter.gd` - class `EnemyCharacter`; extends `CharacterBase`; signals `enemy_defeated`; exports `room_id`, `is_room_enemy`, `experience_reward`, `loot_chance`, `has_silverkey`; funcs `_init`, `post_ready_setup`, `setup_ai_controller`, `setup_visuals`, `_physics_process`, `can_process_enemy_ai`, `execute_attack_behavior`, `execute_chase_behavior`
+- `scripts/EnemyCharacter.gd` - class `EnemyCharacter`; extends `CharacterBase`; signals `enemy_defeated`; exports `experience_reward`, `loot_chance`, `has_silverkey`; funcs `_init`, `post_ready_setup`, `setup_ai_controller`, `setup_visuals`, `_physics_process`, `can_process_enemy_ai`, `begin_encounter_return`, `move_towards`
 - `scripts/factories/EnemyFactory.gd` - class `EnemyFactory`; extends `RefCounted`
 - `scripts/FloatingLabel.gd` - class `FloatingLabel`; extends `Label`; funcs `_ready`, `_process`, `update_screen_position`, `start_animation`
 - `scripts/GameManager.gd` - extends `Node`; exports `enable_verbose_logs`, `verbose_log_level`; funcs `_enter_tree`, `configure_debug_logging`, `_ready`, `_on_player_died`, `on_pause_button_pressed`, `pause_game`, `resume_game`, `continue_game`
@@ -98,9 +102,6 @@
 - `scripts/PlayerCharacter.gd` - signals `player_leveled_up`, `experience_gained`, `player_died`, `silver_key_changed`; exports `experience`, `level`, `silver_key_count`; funcs `_init`, `post_ready_setup`, `setup_walk_sprite`, `setup_state_manager`, `_input`, `handle_mouse_input`, `handle_movement`, `update_walk_animation`
 - `scripts/PlayerStateManager.gd` - class `PlayerStateManager`; extends `Node`; signals `state_changed`, `skill_selected`, `skill_deselected`, `skill_cast_requested`; funcs `_init`, `find_skill_indicator`, `transition_to_state`, `try_select_skill`, `handle_auto_cast_skill`, `enter_skill_targeting_state`, `show_skill_indicator`, `cancel_skill_selection`
 - `scripts/registries/SkillRegistry.gd` - class `SkillRegistry`; extends `RefCounted`
-- `scripts/Room.gd` - class `Room`; extends `Node2D`; signals `room_completed`, `enemy_died_in_room`, `enemy_count_changed`; funcs `_ready`, `setup_room_content`, `generate_obstacles`, `is_grid_connected`, `generate_enemies`, `generate_chest`, `get_valid_chest_position`, `determine_enemy_types`
-- `scripts/rooms/EnemySpawnPlanner.gd` - class `EnemySpawnPlanner`; extends `RefCounted`
-- `scripts/rooms/RoomSaveCodec.gd` - class `RoomSaveCodec`; extends `RefCounted`
 - `scripts/SilverKey.gd` - extends `Area2D`; signals `key_picked_up`; exports `pickup_distance`; funcs `_ready`, `_physics_process`, `_get_player`, `_on_body_entered`, `pickup_by_player`, `play_pickup_animation`
 - `scripts/SkillBase.gd` - class `SkillBase`; extends `RefCounted`; exports `skill_id`, `skill_name`, `cooldown`, `mana_cost`, `max_range`; funcs `_init`, `setup_cooldown_timer`, `_on_cooldown_finished`, `can_cast`, `on_skill_selected`, `on_skill_deselected`, `cast_skill`, `execute_skill_effect`
 - `scripts/SkillButton.gd` - extends `Button`; funcs `_ready`, `initialize_references`, `_pressed`
@@ -126,8 +127,18 @@
 - `scripts/skills/TornadoSkill.gd` - class `TornadoSkill`; extends `SkillBase`; exports `damage_multiplier`, `stun_duration`, `tornado_speed`, `tornado_distance`, `tornado_width`; funcs `_init`, `create_skill_effect`, `execute_skill_effect`, `get_skill_indicator_info`
 - `scripts/skills/VoidPrisonSkill.gd` - class `VoidPrisonSkill`; extends `SkillBase`; exports `damage_multiplier`, `prison_radius`, `stun_duration`, `delay`; funcs `_init`, `execute_skill_effect`, `get_skill_indicator_info`
 - `scripts/ui/UIStyleFactory.gd` - class `UIStyleFactory`; extends `RefCounted`
-- `scripts/UIManager.gd` - extends `Control`; funcs `_ready`, `_input`, `setup_dungeon_reference`, `setup_skill_buttons`, `_on_skill_button_pressed`, `_process`, `update_skill_ui`, `update_player_status_ui`
+- `scripts/UIManager.gd` - extends `Control`; funcs `_ready`, `_input`, `setup_skill_buttons`, `_on_skill_button_pressed`, `_process`, `update_skill_ui`, `update_player_status_ui`, `get_safe_ratio`
+- `scripts/world/EncounterConfig.gd` - class `EncounterConfig`; extends `Resource`; exports `display_name`, `threat_level`, `spawn_groups`, `activation_radius`, `leash_radius`; funcs `validate`
+- `scripts/world/EncounterPoint.gd` - class `EncounterPoint`; extends `Node2D`; signals `changed`, `enemy_killed`, `completed`; exports `encounter_id`, `config`, `preview_radius`; funcs `_get_configuration_warnings`, `_ready`, `setup`, `update_encounter`, `activate`, `_spawn_member`, `_on_member_died`, `request_reinforcements`
+- `scripts/world/EncounterSpawnGroup.gd` - class `EncounterSpawnGroup`; extends `Resource`; exports `group_id`, `enemy_type`, `enemy_scene`, `count`, `spawn_offset`
+- `scripts/world/WorldHUD.gd` - extends `Control`; funcs `_ready`, `_process`, `map_position`, `threat_color`, `_draw`
+- `scripts/world/WorldLayout.gd` - class `WorldLayout`; extends `RefCounted`
+- `scripts/world/WorldManager.gd` - extends `Node2D`; signals `encounter_changed`, `enemy_killed`; funcs `_ready`, `_physics_process`, `respawn_player`, `build_navigation`, `cell_at`, `is_walkable`, `find_navigation_path`, `_nearest_navigation_cell`
+- `scripts/world/WorldMap.gd` - extends `Node2D`; funcs `_ready`, `build_map`, `_surface`
+- `scripts/world/WorldState.gd` - class `WorldState`; extends `RefCounted`; funcs `encounter`, `claim_member_reward`
 - `sprite_2d.gd` - extends `Sprite2D`; funcs `_ready`, `_process`, `_on_button_pressed`
+- `tests/world_integration.gd` - extends `SceneTree`; funcs `_initialize`, `check`, `frames`, `_run`, `_test_cross_chunk_combat`, `_test_chest_reward`, `_test_navigation_and_blink`, `_test_full_reset_rewards`
+- `tests/world_visual.gd` - extends `SceneTree`; funcs `_initialize`, `_run`, `_capture`
 
 ## Maintenance Notes
 

@@ -109,6 +109,9 @@ func setup_collision_size() -> void:
 ## ========== AI行为方法 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
@@ -167,9 +170,3 @@ func get_ai_description() -> String:
 	return "近战小兵AI - 冲锋射击，低血量时撤退"
 
 ## ========== 静态工厂方法 ==========
-
-static func create_melee_enemy(enemy_room_id: Vector2i) -> MeleeEnemy:
-	"""创建近战小兵实例"""
-	var melee_enemy = MeleeEnemy.new()
-	melee_enemy.room_id = enemy_room_id
-	return melee_enemy

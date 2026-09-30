@@ -323,37 +323,17 @@ func create_impact_effect(color: Color = Color.WHITE) -> void:
 ## ========== 阻挡物碰撞处理（障碍物 + 墙壁） ==========
 
 func is_obstacle_collision(body: Node2D) -> bool:
-	"""检查是否为障碍物或墙壁碰撞"""
-	if not body is StaticBody2D:
-		return false
-	
-	# 检查是否为障碍物（有obstacle_type方法）
-	var is_obstacle = body.has_method("get_obstacle_type")
-	
-	# 检查是否为房间墙壁（名称包含"RoomWall"）
-	var is_wall = body.name.begins_with("RoomWall")
-	
-	var is_blocking = is_obstacle or is_wall
-	
-	if is_blocking:
-		if is_wall:
-			DebugLog.debug(["✅ 确认为房间墙壁: ", body.name], DebugLog.CATEGORY_COMBAT)
-		else:
-			DebugLog.debug(["✅ 确认为障碍物: ", body.name], DebugLog.CATEGORY_COMBAT)
-	else:
-		DebugLog.debug(["❌ 不是障碍物或墙壁: ", body.name, " 类型: ", body.get_class()], DebugLog.CATEGORY_COMBAT)
-	
-	return is_blocking
+	return body is StaticBody2D and (body.collision_layer & Constants.LAYER_WORLD) != 0
 
 func handle_obstacle_collision(body: Node2D) -> void:
 	"""处理障碍物或墙壁碰撞"""
 	var collision_type = "unknown"
 	
 	# 判断是墙壁还是障碍物
-	if body.name.begins_with("RoomWall"):
-		collision_type = "wall"
-	elif body.has_method("get_obstacle_type"):
+	if body.has_method("get_obstacle_type"):
 		collision_type = body.get_obstacle_type()
+	else:
+		collision_type = "terrain"
 	
 	DebugLog.debug(["🧱 弹道碰撞到阻挡物: ", body.name, " 类型: ", collision_type, " 弹道类型: ", skill_type], DebugLog.CATEGORY_COMBAT)
 	

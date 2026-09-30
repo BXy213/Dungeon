@@ -1,99 +1,101 @@
 # Project Context
 
-This document is the human-maintained context handoff for Codex and future maintainers.
-Keep it concise, durable, and focused on how the project works.
+Human-maintained handoff for this repository. Read alongside the generated `PROJECT_SNAPSHOT.md`.
 
-## What This Project Is
+## Project And Current Status
 
-This is a Godot 4.6 dungeon-exploration / MOBA-like demo. The player starts from the main menu, enters a generated dungeon, clears rooms of enemies, collects keys and skill rewards, and ultimately reaches the boss / golden-key objective.
+Godot 4.7.1, GDScript, 2D open-map combat prototype. The former generated room dungeon has been replaced on branch `codex/world-map-encounters`. The .NET assembly setting exists but gameplay is GDScript.
 
-The project is currently GDScript-focused. There is a `.NET` assembly name in `project.godot`, but the active gameplay code lives under `scripts/` and scenes under `Scenes/`.
+The initial map is designed and implemented by Codex: 3840x3072 world units, nine resident 1280x1024 chunks, six authored encounter points, safe southwest spawn, southern/eastern route, central route and western reward detour. Existing environment PNG textures are reused. There are no room transitions or combat-locked corridors.
 
-## Runtime Flow
+The first version supports fighting, retreating, returning home, configurable rosters and reset policies, keys/chests/skill rewards, and a final encounter with a golden-key victory. This is a playable prototype, not a finished open-world content system. Difficulty and route pressure still need human playtesting.
 
-- `project.godot` sets `res://Scenes/MainScene.tscn` as the main scene.
-- `Scenes/MainScene.tscn` uses `scripts/MainMenu.gd`; Start loads the gameplay scene, Help loads `Scenes/HelpScene.tscn`, and Quit exits.
-- `Scenes/GameScene.tscn` is the main gameplay composition. It instances the player, `DungeonGenerator`, `SkillIndicator`, `UI/UIManager`, and `GameManager`.
-- `DungeonGenerator.gd` creates the dungeon grid, rooms, corridors, room transitions, collision gating, and camera limits.
-- Each `Room.gd` instance generates its obstacles, enemies, chests, walls, saved state, and completion signals.
-- `GameManager.gd` coordinates pause, death, restart, victory, boss defeat, and high-level game state panels.
-- `UIManager.gd` builds and updates HUD, minimap, skill swapping, reward selection, silver-key display, and pause UI.
+## Entrypoints And Runtime Flow
 
-## Architecture
+- `project.godot` starts `Scenes/MainScene.tscn`; Start loads `Scenes/GameScene.tscn`.
+- `Scenes/WorldTestScene.tscn` inherits GameScene for direct F6 testing. F5 follows the menu.
+- GameScene composes Player, WorldManager/WorldMap, SkillEffects, SkillIndicator, UI/UIManager and GameManager.
+- WorldMap builds authored terrain in the editor and at runtime. WorldManager builds AStarGrid2D navigation, registers placed encounters, assigns the safe spawn and whole-map camera bounds.
+- WorldManager ticks encounter activation/discovery at 10 Hz. Enemy movement is still physics-driven.
+- GameManager owns pause, death/continue, restart and victory. Continue respawns the player at the safe spawn and retains the run; restart reloads all state.
+- The final encounter must clear its roster and all summons/splits before spawning the golden key. Pickup triggers the existing victory panel.
 
-- Character model: `CharacterBase.gd` is the shared base for player and enemies. `PlayerCharacter.gd` handles input, movement, basic attacks, skills, experience, levels, silver keys, death, respawn, and camera limits. `EnemyCharacter.gd` extends the base with AI, rewards, loot, drops, health bars, damage feedback, and room death notifications.
-- Enemy variants: `scripts/enemies/*.gd` implement melee, ranged, elite, boss, healer, bomber, splitter, and mini-splitter behavior. `EnemyFactory.gd` is the central creation and legacy type conversion point.
-- Dungeon and rooms: `DungeonGenerator.gd` creates a connected grid using corridor data and room state. `Room.gd` owns per-room content generation and persistence. `EnemySpawnPlanner.gd` chooses enemy waves by room distance and boss-room position. `RoomSaveCodec.gd` serializes obstacles and enemies.
-- Skills: `SkillBase.gd` defines common cooldown, mana, range, target, and effect helpers. `SkillRegistry.gd` maps skill IDs to scripts. `SkillManager.gd` owns active slots, library, swapping, cooldown queries, and casts. Concrete skills live in `scripts/skills/`.
-- Effects and feedback: `SkillEffect.gd`, `SkillIndicator.gd`, `DamageNumber.gd`, and `FloatingLabel.gd` handle projectile / area effects, targeting visuals, and combat feedback.
-- UI: Most gameplay UI is constructed or managed by `UIManager.gd`; `SkillButton.gd`, `HelpMenu.gd`, `MainMenu.gd`, and `UIStyleFactory.gd` support smaller UI surfaces.
-- Shared constants: `scripts/core/GameConstants.gd` centralizes group names, node names, scene paths, and collision layer / mask constants.
-- Debug logging: `scripts/core/DebugLog.gd` provides opt-in verbose gameplay logging with levels (`debug`, `info`, `warning`, `error`) and categories such as `game`, `ui`, `combat`, `skill`, `player`, `ai`, `dungeon`, `room`, `pickup`, `interaction`, and `buff`. It defaults to disabled and is configured by `GameManager.gd` via exported `enable_verbose_logs` and `verbose_log_level` fields. `SkillEffect.gd`, `GameManager.gd`, `UIManager.gd`, `EnemyCharacter.gd`, `PlayerCharacter.gd`, `SkillManager.gd`, `SkillBase.gd`, `PlayerStateManager.gd`, `SkillIndicator.gd`, `Chest.gd`, `SilverKey.gd`, and `GoldenKey.gd` route noisy or state-change logs through it.
+## World Responsibilities
 
-## Key Directories And Files
+- `scripts/world/WorldLayout.gd`: fixed dimensions, spawn, rock-shelf obstacle rectangles and three authored roads. Terrain and navigation derive from the same layout.
+- `WorldMap.gd`: nine terrain chunks, textured roads, StaticBody2D world obstacles and editor preview. Not procedural level generation.
+- `WorldManager.gd`: world orchestration, 64-unit AStarGrid2D with obstacle clearance, reachable spawn positions, safe blink landing positions, camera bounds, clear rewards and UI queries.
+- `EncounterConfig.gd`: reusable Resource for name, threat, roster, activation/leash/reset radii, reset policy and rewards.
+- `EncounterSpawnGroup.gd`: typed Resource for group ID, factory type or custom PackedScene, count, offsets, spread, health/damage multipliers and key holder.
+- `EncounterPoint.gd`: unique placed identity and DORMANT/ACTIVE/LEASHING/RESETTING/CLEARED state machine; owns enemy membership and pending summons.
+- `WorldState.gd`: in-memory per-run discovery, dead member IDs, clear/reward flags and member reward ledger. No disk save or streaming restore API.
+- `WorldHUD.gd`: world-coordinate minimap, discovered chunks, encounter threat/state, final objective and player position.
 
-- `project.godot`: Godot project config, main scene, input actions, renderer settings.
-- `Scenes/MainScene.tscn`: main menu scene.
-- `Scenes/GameScene.tscn`: gameplay root scene and primary node composition.
-- `Scenes/Player.tscn`, `Scenes/Room.tscn`, `Scenes/*Skill*.tscn`, key/chest/obstacle scenes: reusable gameplay scene assets. The player `Sprite2D` uses `art/charwalk.png` as a 4x4 sheet, with columns for directions and rows for walk frames.
-- `scripts/CharacterBase.gd`, `scripts/PlayerCharacter.gd`, `scripts/EnemyCharacter.gd`: combat-character core.
-- `scripts/core/DebugLog.gd`: opt-in verbose gameplay logger with level and category filtering for noisy diagnostics.
-- `scripts/DungeonGenerator.gd`, `scripts/Room.gd`: procedural dungeon and room lifecycle.
-- `scripts/SkillBase.gd`, `scripts/SkillManager.gd`, `scripts/registries/SkillRegistry.gd`, `scripts/skills/`: skill system.
-- `scripts/UIManager.gd`, `scripts/GameManager.gd`: gameplay UI and high-level flow.
-- `scripts/factories/EnemyFactory.gd`, `scripts/rooms/EnemySpawnPlanner.gd`, `scripts/rooms/RoomSaveCodec.gd`: enemy creation, spawn planning, and room state serialization.
-- `art/`: sprite and effect assets. `art/enemies/` contains generated transparent PNG enemy sprites; `art/environment/` contains generated dungeon floor, wall, and obstacle textures. Generated `.import` files are excluded from project snapshots.
-- `docs/WORLD_MAP_MIGRATION_PLAN.md`: local planning document for the proposed open-world map and encounter-point migration.
-- `docs/PROJECT_SNAPSHOT.md`: generated current structure summary.
+Configuration lives in `resources/encounters/*.tres`; point placement lives in `Scenes/world/WorldMap.tscn`. Copying a template should not require controller edits. `encounter_id` is unique per placed point, separate from its reusable config. Member IDs are `group_id/index`; summons/splits have deterministic child IDs.
 
-## Common Commands
+## Combat And Reused Systems
 
-- Open in Godot Editor from the project root:
+- `CharacterBase.gd`: common character stats, combat and BuffSystem integration.
+- `PlayerCharacter.gd`: input, movement/basic attacks, skills, XP, levels, keys, death/respawn and walk-sheet animation.
+- `EnemyCharacter.gd`: encounter ownership, home/return behavior, collision-aware navigation, rewards/loot and feedback. Subclasses call the base physics method then gate their own AI with `can_process_enemy_ai()`; timers must honor the same gate.
+- `scripts/enemies/`: melee, ranged, elite, boss, healer, bomber and splitter variants. Boss/splitter request reinforcements through their encounter. Healers do not heal neighboring encounters or returning enemies.
+- `scripts/factories/EnemyFactory.gd`: factory for eight canonical string IDs. Legacy room IDs, integer mappings and room-specific static constructors were removed.
+- `SkillBase.gd`, `SkillManager.gd`, `registries/SkillRegistry.gd`, `scripts/skills/`: existing skill system. New skills register with SkillRegistry. Blink delegates landing validation to WorldManager.
+- `SkillEffect.gd`: shared effects/projectiles. World blocking is determined by StaticBody2D world collision layer, not legacy RoomWall names. Existing intentional piercing skills retain their behavior.
+- `UIManager.gd`: skill/status UI, swapping, chest rewards and pause UI; delegates map display to WorldHUD.
+- `Chest.gd`, `SilverKey.gd`, `GoldenKey.gd`: shared interaction/pickup objects. Encounter completion now owns chest/final-key generation, not individual Boss death.
 
-```bash
+## State And Gameplay Contracts
+
+- Radii must satisfy `0 < activation < leash < reset`; measured from the point, not from chunk edges.
+- PARTIAL_PERSIST retains dead members and heals surviving returned members; FULL_RESET rebuilds the roster after return/reset; NO_RESET retains survivors' health.
+- Return clears buffs and suppresses damage/AI until enemies are home. Reset requires all surviving members home and the player outside reset_radius for reset_delay.
+- Cleared encounters never respawn within the run. FULL_RESET preserves the per-member reward ledger, preventing repeated XP/key farming.
+- Dynamic summons/splits count toward encounter completion but grant no XP or keys. Pending member reservations prevent a parent death from prematurely clearing the camp.
+- Threat level is UI metadata. Actual difficulty comes from roster, health/damage multipliers and terrain, not automatic threat scaling.
+- Keys/chests remain in the resident world when the player leaves. No room-transition projectile clearing occurs; existing effects expire normally.
+- WorldMap/WorldManager currently assume world origin zero and unscaled placement. Encounter points support translation only.
+- All nine chunks remain resident; distant unvisited encounters have no enemy instances, returned encounters sleep. Profile before adding streaming.
+
+## Commands And Verification
+
+Use Godot 4.7.1. Installed Windows executable:
+
+`D:/Program Files/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe`
+
+Commands below use `godot` as an alias for that executable:
+
+```powershell
 godot --editor --path .
-```
-
-- Run the project from the project root:
-
-```bash
-godot --path .
-```
-
-- Refresh the generated Codex project snapshot:
-
-```bash
+godot --headless --editor --path . --import --quit
+godot --headless --path . --script tests/world_integration.gd
+godot --path . --script tests/world_visual.gd --rendering-method gl_compatibility --resolution 1280x720
+godot --path . --script tests/world_visual.gd --rendering-method gl_compatibility --resolution 1024x576
 python "C:/Users/yangbo.ran/.codex/skills/project-context-maintainer/scripts/update_project_snapshot.py" --project .
 ```
 
-No automated test command is currently documented in the repository.
+Integration tests currently cover 117 assertions: six configurations, connected roads/camps, activation idempotence, cross-chunk projectile/movement, obstacle blocking, retreat/navigation, all reset policies, XP/key deduplication, real chest reward selection, custom enemy PackedScene, Boss summons/splits/final reward, blink limits and death/restart.
 
-## Data, APIs, And Resources
+Visual checks write screenshots under ignored `.godot/world-qa/` and sample canvas colors. The screenshots were visually inspected at 1280x720 and 1024x576. Gameplay balance and long-duration performance are not proven by these tests.
 
-- Input actions are defined in `project.godot`: movement (`move_left`, `move_right`, `move_up`, `move_down`) and skill slots (`skill_1` through `skill_4`).
-- `art/charwalk.png` is the player movement sprite sheet. `PlayerCharacter.gd` drives it by setting `Sprite2D.frame_coords`; columns are down, left, up, and right, while rows are walk frames.
-- Enemy scripts under `scripts/enemies/` preload their type-specific sprites from `art/enemies/` instead of tinting the placeholder `icon.webp`.
-- Room and corridor surfaces use tiled generated textures from `art/environment/`; `Room.gd` owns room floors and room wall visuals, `DungeonGenerator.gd` owns corridor floor and wall visuals, and `Obstacle.gd` scales the generated rubble sprite to its grid collision size.
-- Skill IDs are canonicalized in `SkillRegistry.gd`; add new skills there and under `scripts/skills/`.
-- Enemy type IDs are canonicalized in `EnemyFactory.gd`; room save/load uses both string IDs and legacy integer IDs.
-- Room state and generated content live in `Room.gd` and `RoomSaveCodec.gd`. Be careful when changing enemy, obstacle, or room data shape because it may affect restoring room contents.
-- Main gameplay node names are referenced by scripts via constants in `GameConstants.gd`; renaming scene nodes can break lookups unless constants and call sites are updated together.
-- Collision layers and masks are encoded in `GameConstants.gd`. Coordinate changes with scene collision settings.
-- Enemy subclasses own their AI movement and call `move_and_slide()` after setting velocity. `EnemyCharacter.gd` only gates dead / stunned AI processing so subclasses do not inherit `CharacterBase.gd`'s player-style movement pass.
-- `UIManager.gd` refreshes skill and status UI on a short interval rather than every frame; force an immediate refresh after important state changes when adding new UI surfaces. `SkillIndicator.gd` disables processing while hidden and caches the player reference while active.
-- To enable verbose logs, set `GameManager.enable_verbose_logs` to true in the scene inspector or in code, and choose a `verbose_log_level`. Use `DebugLog.debug/info/warning/error([...], DebugLog.CATEGORY_*)` for new diagnostics instead of raw `print()` when the message is not always user-relevant.
+The current host blocks some native executables in the default sandbox; Godot, Git and Python commands may need tool approval. Do not interpret that as a project parse error.
 
-## Change Guidelines
+## Documentation And Change Guidelines
 
-- Update this file when project behavior, architecture, workflows, module responsibilities, or important constraints change.
-- Regenerate `docs/PROJECT_SNAPSHOT.md` after source, config, scene, resource, build, or structure changes.
-- Project maintenance is enabled by `.codex/project-maintenance.json`.
-- Future Codex sessions should use `$project-context-maintainer` and automatically bootstrap by reading `AGENTS.md`, `.codex/project-maintenance.json`, `docs/PROJECT_CONTEXT.md`, and `docs/PROJECT_SNAPSHOT.md` before project-sensitive work.
-- These maintenance files are intentionally local and ignored by Git in this repository: `.codex/`, `AGENTS.md`, `docs/PROJECT_CONTEXT.md`, and `docs/PROJECT_SNAPSHOT.md`.
+- `docs/WORLD_MAP_MIGRATION_PLAN.md`: architecture decisions, implemented scope, future phases and final legacy cleanup.
+- `docs/WORLD_MAP_TODO.md`: persistent checklist, validation results and remaining work.
+- `docs/ENCOUNTER_AUTHORING.md`: Inspector authoring workflow, exact fields, resource sharing and custom enemy contracts.
+- `docs/PROJECT_SNAPSHOT.md`: generated inventory, never edit by hand.
+- AGENTS.md opts this repository into project-context-maintainer. Read AGENTS, maintenance config, this file and the snapshot before architecture-sensitive work.
+- Update this context and regenerate the snapshot after structural/behavioral changes.
+- Preserve existing unrelated edits. No automatic commit/push.
+- Actual Git rules track PROJECT_CONTEXT.md and PROJECT_SNAPSHOT.md, while ignoring other docs/*.md and .codex/. The plan, TODO and authoring guide are local files and will not accompany commits unless the user changes that policy. AGENTS' older local-only wording does not fully match these current rules; this task did not alter tracking rules.
+- Do not manually edit Godot-generated .uid/.import files. Several existing files contain Unicode comments or BOMs; preserve encoding.
 
-## Known Sharp Edges
+## Known Limitations
 
-- Some Chinese user-facing strings and comments appear as mojibake when read from the command line. Verify encoding in the Godot editor before editing text fields or rewriting affected files.
-- `UIManager.gd`, `DungeonGenerator.gd`, and `Room.gd` are large coordinator scripts with many direct node lookups and signal connections. Prefer small, local edits and verify affected scene node paths.
-- Do not manually edit Godot `.uid` files or generated `.import` files.
-- `docs/PROJECT_SNAPSHOT.md` is generated. Fix the generator or config rather than hand-editing snapshot contents.
+- No full cross-launch save, streaming, patrol/ambush event system, reward-pool tiers, automatic threat scaling or procedural world generation.
+- Initial health, XP, skills and rewards reuse the prior demo; difficulty labels and route balance need playtesting.
+- Custom static monsters use enemy_scene; new dynamic reinforcement types still need a factory registration/API extension.
+- The existing skill metadata/reward UI creates cooldown Timer objects before attaching them to the scene. Reward-flow tests can report orphan Timer instances on exit; this pre-existing skill lifecycle issue is separate from world state and remains a follow-up.
+- Removed runtime modules: DungeonGenerator, Room, Room.tscn, EnemySpawnPlanner, RoomSaveCodec, room minimap/corridor display, room enemy ownership and obsolete Boss-key emission. Recover historical behavior through Git, not a parallel legacy runtime.

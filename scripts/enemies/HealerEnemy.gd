@@ -21,15 +21,6 @@ var flee_range: float = 200.0  # 逃跑距离
 
 ## ========== 静态创建方法 ==========
 
-static func create_healer_enemy(enemy_room_id: Vector2i) -> HealerEnemy:
-	"""静态工厂方法：创建治疗者"""
-	var healer = HealerEnemy.new()
-	healer.is_room_enemy = true
-	healer.room_id = enemy_room_id
-	return healer
-
-## ========== 初始化方法 ==========
-
 func _init():
 	super._init()
 	
@@ -154,6 +145,8 @@ func _try_heal_allies() -> void:
 	# 查找受伤的队友
 	for enemy in enemies:
 		if enemy == self or enemy.is_dead:
+			continue
+		if is_instance_valid(encounter_owner) and (enemy.encounter_owner != encounter_owner or enemy.encounter_returning):
 			continue
 		
 		var distance = global_position.distance_to(enemy.global_position)

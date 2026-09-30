@@ -19,15 +19,6 @@ var detonate_range: float = 80.0  # 引爆距离
 
 ## ========== 静态创建方法 ==========
 
-static func create_bomber_enemy(enemy_room_id: Vector2i) -> BomberEnemy:
-	"""静态工厂方法：创建自爆兵"""
-	var bomber = BomberEnemy.new()
-	bomber.is_room_enemy = true
-	bomber.room_id = enemy_room_id
-	return bomber
-
-## ========== 初始化方法 ==========
-
 func _init():
 	super._init()
 	
@@ -137,6 +128,9 @@ func _physics_process(delta: float) -> void:
 ## ========== 自爆兵AI行为 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	if is_dead:
 		return
@@ -183,9 +177,6 @@ func _detonate() -> void:
 	
 	# 掉落经验和物品
 	drop_rewards()
-	
-	# 通知房间敌人死亡
-	notify_room_enemy_death()
 	
 	# 发出敌人击败信号
 	enemy_defeated.emit(self, experience_reward)

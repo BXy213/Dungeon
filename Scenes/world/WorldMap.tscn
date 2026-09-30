@@ -1,0 +1,46 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/WorldMap.gd" id="map"]
+[ext_resource type="PackedScene" path="res://Scenes/world/EncounterPoint.tscn" id="point"]
+[ext_resource type="Resource" path="res://resources/encounters/south_camp.tres" id="south_camp"]
+[ext_resource type="Resource" path="res://resources/encounters/crossroads.tres" id="crossroads"]
+[ext_resource type="Resource" path="res://resources/encounters/west_ruins.tres" id="west_ruins"]
+[ext_resource type="Resource" path="res://resources/encounters/east_watch.tres" id="east_watch"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_pass.tres" id="elite_pass"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_court.tres" id="boss_court"]
+
+[node name="WorldMap" type="Node2D"]
+script = ExtResource("map")
+
+[node name="Encounters" type="Node2D" parent="."]
+
+[node name="south_camp" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(1710, 2610)
+encounter_id = &"south_camp"
+config = ExtResource("south_camp")
+
+[node name="crossroads" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(1770, 1560)
+encounter_id = &"crossroads"
+config = ExtResource("crossroads")
+
+[node name="west_ruins" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(530, 1240)
+encounter_id = &"west_ruins"
+config = ExtResource("west_ruins")
+
+[node name="east_watch" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(3260, 1640)
+encounter_id = &"east_watch"
+config = ExtResource("east_watch")
+
+[node name="elite_pass" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(1900, 420)
+encounter_id = &"elite_pass"
+config = ExtResource("elite_pass")
+
+[node name="boss_court" parent="Encounters" instance=ExtResource("point")]
+position = Vector2(3250, 450)
+encounter_id = &"boss_court"
+config = ExtResource("boss_court")
+

@@ -7,23 +7,23 @@ const Constants = preload("res://scripts/core/GameConstants.gd")
 
 ## ========== 敌人通用属性 ==========
 
-@export var room_id: Vector2i = Vector2i.ZERO
-@export var is_room_enemy: bool = true
 @export var experience_reward: int = 10
 @export var loot_chance: float = 0.1
 @export var has_silverkey: bool = false  # 是否携带银钥匙
+
+var encounter_owner: Node
+var encounter_member_id: String = ""
+var home_position: Vector2
+var encounter_returning := false
+var world_path := PackedVector2Array()
+var path_refresh := 0.0
+var rewards_emitted := false
 
 # AI逻辑已直接集成到敌人子类中
 
 # 敌人血条UI组件（通过代码创建，不使用@onready）
 var health_bar: Control = null
 var health_fill: ColorRect = null
-
-# 智能寻路配置
-var use_smart_pathfinding: bool = true  # 是否使用射线检测避障
-var avoidance_direction: Vector2 = Vector2.ZERO  # 当前避障方向
-var avoidance_timer: float = 0.0  # 避障方向保持时间
-var last_direction: Vector2 = Vector2.ZERO  # 上一帧的移动方向
 
 ## ========== 敌人信号 ==========
 
@@ -76,11 +76,43 @@ func setup_visuals() -> void:
 
 func _physics_process(_delta: float) -> void:
 	# Enemy subclasses own AI movement and call move_and_slide() after setting velocity.
+	if encounter_returning and buff_system and not buff_system.active_buffs.is_empty():
+		buff_system.clear_all_buffs()
 	if is_dead or is_stunned:
 		velocity = Vector2.ZERO
+		return
+	path_refresh -= _delta
+	if is_instance_valid(encounter_owner):
+		if not encounter_returning and global_position.distance_to(encounter_owner.global_position) > encounter_owner.config.leash_radius:
+			begin_encounter_return()
+		if encounter_returning:
+			if global_position.distance_to(home_position) > 12:
+				navigate_to_target(home_position)
+				move_and_slide()
+			else:
+				velocity = Vector2.ZERO
+				if encounter_owner.state == encounter_owner.State.ACTIVE:
+					encounter_returning = false
+					modulate = Color.WHITE
 
 func can_process_enemy_ai() -> bool:
-	return not is_dead and not is_stunned
+	return not is_dead and not is_stunned and not encounter_returning and process_mode != Node.PROCESS_MODE_DISABLED
+
+func begin_encounter_return() -> void:
+	encounter_returning = true
+	set("current_target", null)
+	world_path.clear()
+	path_refresh = 0
+	if buff_system:
+		buff_system.clear_all_buffs()
+	modulate = Color(0.65, 0.8, 0.8, 0.8)
+
+func move_towards(target_position: Vector2, speed_multiplier: float = 1.0) -> void:
+	if is_instance_valid(encounter_owner):
+		navigate_to_target(target_position)
+		velocity *= speed_multiplier
+	else:
+		super.move_towards(target_position, speed_multiplier)
 
 func execute_attack_behavior() -> void:
 	"""执行攻击行为（子类实现）"""
@@ -93,100 +125,25 @@ func execute_chase_behavior() -> void:
 ## ========== 智能寻路系统（射线检测避障） ==========
 
 func navigate_to_target(target_pos: Vector2) -> void:
-	"""智能移动到目标位置（使用射线检测避障，带平滑移动）"""
-	# 计算到目标的方向
-	var to_target = target_pos - global_position
-	var distance_to_target = to_target.length()
-	var direction = to_target.normalized()
-	
-	# 减少避障计时器
-	if avoidance_timer > 0:
-		avoidance_timer -= get_physics_process_delta_time()
-	
-	# 只在需要时重新计算避障方向（避免频繁切换）
-	if avoidance_timer <= 0:
-		# 使用射线检测检查是否有障碍物（提前检测，距离更远）
-		var detection_distance = min(distance_to_target, 150.0)  # 最多检测150像素
-		var detection_target = global_position + direction * detection_distance
-		
-		var space_state = get_world_2d().direct_space_state
-		var query = PhysicsRayQueryParameters2D.create(global_position, detection_target)
-		query.collision_mask = Constants.LAYER_WORLD
-		query.exclude = [self]
-		
-		var result = space_state.intersect_ray(query)
-		
-		if result:
-			# 检测到障碍物，计算新的避障方向
-			var obstacle_pos = result.position
-			var to_obstacle = obstacle_pos - global_position
-			
-			# 只有在障碍物比较近时才避障（距离小于80像素）
-			if to_obstacle.length() < 80.0:
-				# 计算绕路方向（左右两侧）
-				var perpendicular_left = Vector2(-direction.y, direction.x)
-				var perpendicular_right = Vector2(direction.y, -direction.x)
-				
-				# 检测左右两侧哪边更通畅
-				var left_ray = PhysicsRayQueryParameters2D.create(
-					global_position, 
-					global_position + perpendicular_left * 80
-				)
-				left_ray.collision_mask = Constants.LAYER_WORLD
-				left_ray.exclude = [self]
-				
-				var right_ray = PhysicsRayQueryParameters2D.create(
-					global_position, 
-					global_position + perpendicular_right * 80
-				)
-				right_ray.collision_mask = Constants.LAYER_WORLD
-				right_ray.exclude = [self]
-				
-				var left_result = space_state.intersect_ray(left_ray)
-				var right_result = space_state.intersect_ray(right_ray)
-				
-				# 选择更通畅的一侧
-				if not left_result and not right_result:
-					# 两侧都通畅，选择更靠近目标的一侧
-					var left_to_target = (target_pos - (global_position + perpendicular_left * 40)).length()
-					var right_to_target = (target_pos - (global_position + perpendicular_right * 40)).length()
-					avoidance_direction = perpendicular_left if left_to_target < right_to_target else perpendicular_right
-				elif not left_result:
-					avoidance_direction = perpendicular_left
-				elif not right_result:
-					avoidance_direction = perpendicular_right
-				else:
-					# 两侧都有障碍，向远离障碍的方向移动
-					avoidance_direction = (global_position - obstacle_pos).normalized()
-				
-				# 设置避障计时器，在一段时间内保持这个方向（减少抖动）
-				avoidance_timer = 0.3  # 保持0.3秒
-			else:
-				# 障碍物还比较远，不需要避障
-				avoidance_direction = Vector2.ZERO
-				avoidance_timer = 0.1
-		else:
-			# 没有障碍物，重置避障方向
-			avoidance_direction = Vector2.ZERO
-			avoidance_timer = 0.1
-	
-	# 计算最终方向
-	var final_direction = direction
-	if avoidance_direction != Vector2.ZERO:
-		# 混合避障方向和目标方向
-		final_direction = (avoidance_direction * 0.6 + direction * 0.4).normalized()
-	
-	# 与上一帧方向插值，使移动更平滑
-	if last_direction != Vector2.ZERO:
-		final_direction = last_direction.lerp(final_direction, 0.3)  # 30%的插值，使转向更平滑
-	
-	# 记录当前方向
-	last_direction = final_direction.normalized()
-	
-	# 设置速度
-	velocity = final_direction * current_speed
-
-## ========== 敌人通用移动系统 ==========
+	if not is_instance_valid(encounter_owner):
+		velocity = global_position.direction_to(target_pos) * current_speed
+		return
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = $CollisionShape2D.shape
+	query.transform = $CollisionShape2D.global_transform
+	query.motion = target_pos - global_position
+	query.collision_mask = Constants.LAYER_WORLD
+	if get_world_2d().direct_space_state.cast_motion(query)[0] >= 1.0:
+		velocity = global_position.direction_to(target_pos) * current_speed
+		return
+	if path_refresh <= 0:
+		world_path = encounter_owner.world.find_navigation_path(global_position, target_pos)
+		path_refresh = 0.35
+		if world_path.size() > 1 and encounter_owner.world.is_walkable(global_position):
+			world_path.remove_at(0)
+	while not world_path.is_empty() and global_position.distance_to(world_path[0]) < 12:
+		world_path.remove_at(0)
+	velocity = Vector2.ZERO if world_path.is_empty() else global_position.direction_to(world_path[0]) * current_speed
 
 func handle_movement(_delta: float) -> void:
 	"""敌人移动由AI控制，这里不需要实现"""
@@ -223,14 +180,6 @@ func launch_projectile(target_pos: Vector2, _target: Node = null) -> void:
 	- set_projectile_appearance(): 改变弹道外观
 	"""
 	DebugLog.debug(["🚀 ", character_name, " 发射弹道 → 目标: ", target_pos, " 伤害: ", current_attack_damage], DebugLog.CATEGORY_COMBAT)
-	
-	# 房间ID验证 - 只在当前房间创建弹道
-	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
-	if dungeon_generator:
-		var current_room_id = dungeon_generator.get_current_room_coord()
-		if room_id != current_room_id:
-			DebugLog.debug(["敌人不在当前房间，跳过攻击"], DebugLog.CATEGORY_COMBAT)
-			return
 	
 	# 创建攻击弹道
 	create_attack_projectile(target_pos)
@@ -342,6 +291,8 @@ func create_warning_indicator() -> void:
 
 func take_damage(amount: int, source: Node = null) -> void:
 	"""敌人受伤"""
+	if encounter_returning:
+		return
 	# 记录玩家造成的伤害
 	if source:
 		if source.is_in_group(Constants.GROUP_PLAYERS):
@@ -478,11 +429,8 @@ func update_health_bar() -> void:
 
 func die() -> void:
 	"""敌人死亡"""
-	# 检查是否是BOSS（在调用super.die()之前处理金钥匙掉落）
-	if character_name == "BOSS":
-		DebugLog.info(["🎉 检测到BOSS死亡！将掉落金钥匙..."], DebugLog.CATEGORY_COMBAT)
-		drop_golden_key()
-	
+	if is_dead:
+		return
 	super.die()
 	
 	# 播放死亡动画
@@ -490,9 +438,6 @@ func die() -> void:
 	
 	# 掉落经验和物品
 	drop_rewards()
-	
-	# 通知房间敌人死亡
-	notify_room_enemy_death()
 	
 	# 发出敌人击败信号
 	enemy_defeated.emit(self, experience_reward)
@@ -507,6 +452,11 @@ func play_death_animation() -> void:
 
 func drop_rewards() -> void:
 	"""掉落奖励"""
+	if rewards_emitted:
+		return
+	rewards_emitted = true
+	if is_instance_valid(encounter_owner) and not encounter_owner.claim_member_reward(encounter_member_id):
+		return
 	# 给玩家经验值
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player:
@@ -550,38 +500,6 @@ func _deferred_drop_silver_key(drop_position: Vector2) -> void:
 	else:
 		DebugLog.warning(["无法找到游戏场景，银钥匙添加失败"], DebugLog.CATEGORY_COMBAT)
 
-func drop_golden_key() -> void:
-	"""掉落金钥匙（BOSS专属）"""
-	DebugLog.info(["🏆 ", character_name, " 掉落金钥匙！位置: ", global_position], DebugLog.CATEGORY_COMBAT)
-	
-	# ⚠️ 使用 call_deferred 延迟添加，避免在物理查询期间修改物理状态
-	var drop_position = global_position
-	call_deferred("_deferred_drop_golden_key", drop_position)
-
-func _deferred_drop_golden_key(drop_position: Vector2) -> void:
-	"""延迟掉落金钥匙（在下一帧执行）"""
-	# 加载金钥匙场景
-	var GoldenKeyScene = preload("res://Scenes/GoldenKey.tscn")
-	var golden_key = GoldenKeyScene.instantiate()
-	
-	# 设置金钥匙位置
-	golden_key.global_position = drop_position
-	
-	# 将金钥匙添加到场景树
-	var game_scene = get_tree().current_scene
-	if game_scene:
-		game_scene.add_child(golden_key)
-		DebugLog.debug(["金钥匙已添加到场景"], DebugLog.CATEGORY_COMBAT)
-	else:
-		DebugLog.warning(["无法找到游戏场景，金钥匙添加失败"], DebugLog.CATEGORY_COMBAT)
-
-func notify_room_enemy_death() -> void:
-	"""通知房间敌人死亡"""
-	if is_room_enemy:
-		# 新系统使用character_died信号自动处理，无需手动通知
-		DebugLog.debug(["🏠 敌人 ", character_name, " 在房间 ", room_id, " 中死亡，通过信号系统处理"], DebugLog.CATEGORY_COMBAT)
-
-## ========== 敌人通用技能系统 ==========
 
 func cast_enemy_skill(skill_name: String, _target: Node = null) -> void:
 	"""敌人释放技能（基础实现，子类可重写）"""
@@ -602,17 +520,11 @@ func get_ai_state() -> String:
 	"""获取AI状态（基础实现）"""
 	return "INTEGRATED"  # AI已集成到子类
 
-func set_room_id(new_room_id: Vector2i) -> void:
-	"""设置所属房间ID"""
-	room_id = new_room_id
-
-## ========== 敌人通用调试信息 ==========
-
 func get_debug_info() -> Dictionary:
 	"""获取敌人调试信息"""
 	var debug_info = super.get_debug_info()
 	debug_info.merge({
-		"room_id": str(room_id),
+		"encounter_id": str(encounter_owner.encounter_id) if is_instance_valid(encounter_owner) else "",
 		"experience_reward": experience_reward,
 		"ai_state": get_ai_state(),
 		"ai_description": str(get_ai_description()) if has_method("get_ai_description") else "无描述",
@@ -623,33 +535,3 @@ func get_debug_info() -> Dictionary:
 func get_ai_description() -> String:
 	"""获取AI描述（子类可重写）"""
 	return "基础敌人AI"
-
-func get_current_room_bounds() -> Rect2:
-	"""
-	获取当前房间的全局边界区域
-	
-	返回：Rect2 表示房间的全局坐标区域（包含position和size）
-	如果找不到房间，返回一个默认的大区域
-	"""
-	# 尝试获取当前房间（敌人在Enemies容器中，父节点是房间）
-	var current_room = null
-	if get_parent() and get_parent().get_parent():
-		current_room = get_parent().get_parent()
-	
-	if not current_room:
-		DebugLog.warning(["无法找到当前房间，使用默认边界"], DebugLog.CATEGORY_AI)
-		return Rect2(0, 0, 1152, 648)  # 默认房间大小
-	
-	# 获取房间的全局位置和大小
-	var room_global_pos = current_room.global_position if current_room.has_method("get_global_position") else Vector2.ZERO
-	var room_size = current_room.room_size if "room_size" in current_room else Vector2(1152, 648)
-	
-	# 添加边界留白，避免生成在墙壁上
-	var margin = 80.0
-	
-	return Rect2(
-		room_global_pos.x + margin,
-		room_global_pos.y + margin,
-		room_size.x - margin * 2,
-		room_size.y - margin * 2
-	)

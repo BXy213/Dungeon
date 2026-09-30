@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EncounterConfig" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/EncounterConfig.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/world/EncounterSpawnGroup.gd" id="2"]
+
+[sub_resource type="Resource" id="Group_0"]
+script = ExtResource("2")
+group_id = &"boss"
+enemy_type = "boss"
+count = 1
+spawn_offset = Vector2(0, 0)
+spawn_radius = 0.0
+health_multiplier = 1.4
+damage_multiplier = 1.1
+silver_key_holder = false
+
+[resource]
+script = ExtResource("1")
+display_name = "Crown Court"
+threat_level = 6
+spawn_groups = Array[ExtResource("2")]([SubResource("Group_0")])
+reset_policy = 1
+reward_chest = false
+clear_experience = 300
+is_final_objective = true
+

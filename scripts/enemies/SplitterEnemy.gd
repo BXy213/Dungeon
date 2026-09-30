@@ -20,24 +20,6 @@ var lose_target_distance: float = 600.0
 
 ## ========== 静态创建方法 ==========
 
-static func create_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
-	"""静态工厂方法：创建分裂体"""
-	var splitter = SplitterEnemy.new()
-	splitter.is_room_enemy = true
-	splitter.room_id = enemy_room_id
-	return splitter
-
-static func create_mini_splitter_enemy(enemy_room_id: Vector2i) -> SplitterEnemy:
-	"""静态工厂方法：创建小型分裂体"""
-	var mini_splitter = SplitterEnemy.new()
-	mini_splitter.is_mini_split = true
-	mini_splitter.is_room_enemy = true
-	mini_splitter.room_id = enemy_room_id
-	mini_splitter.apply_mini_split_stats()
-	return mini_splitter
-
-## ========== 初始化方法 ==========
-
 func _init():
 	super._init()
 	
@@ -184,6 +166,9 @@ func _physics_process(delta: float) -> void:
 ## ========== 分裂体AI行为 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	if is_dead:
 		return
@@ -220,89 +205,12 @@ func die() -> void:
 		print("  ✅ ", type_name, " 死亡流程完成")
 
 func _spawn_mini_splits() -> void:
-	"""生成小型分裂体"""
-	# 获取当前房间
-	var current_room = null
-	if get_parent() and get_parent().get_parent():
-		current_room = get_parent().get_parent()
-	if not current_room:
-		print("⚠️ 无法找到当前房间，分裂失败")
-		return
-	
-	var death_position = global_position
-	print("🔀 开始分裂成 ", split_count, " 个小型体，死亡位置(全局): ", death_position)
-	
-	# 获取敌人容器，计算相对位置
-	var enemies_container = current_room.get_node_or_null(Constants.NODE_ENEMIES_CONTAINER)
-	if not enemies_container:
-		print("⚠️ 无法找到敌人容器，分裂失败")
-		return
-	
-	# ⚠️ 使用 call_deferred 延迟生成，避免在物理查询刷新期间修改物理状态
-	call_deferred("_deferred_spawn_mini_splits", current_room, enemies_container, death_position)
-
-func _deferred_spawn_mini_splits(current_room: Node, enemies_container: Node, death_position: Vector2) -> void:
-	"""延迟生成小型分裂体（在下一帧执行）"""
-	# 在周围生成小型分裂体
-	for i in range(split_count):
-		var mini_split = _create_mini_split()
-		if mini_split:
-			# 计算生成位置（围绕死亡位置），并确保不与障碍物重叠
-			var angle = (TAU / split_count) * i
-			var base_offset = Vector2(cos(angle), sin(angle)) * 40.0
-			
-			# ✅ 查找有效的生成位置（避开障碍物）
-			var spawn_global_pos = _find_valid_spawn_position(death_position, base_offset)
-			
-			mini_split.room_id = room_id
-			
-			print("  🔀 #", i+1, " 创建完成，准备添加到场景树")
-			print("    - 名称: ", mini_split.character_name)
-			print("    - 生命值: ", mini_split.health, "/", mini_split.max_health)
-			print("    - 目标位置(全局): ", spawn_global_pos)
-			print("    - is_dead: ", mini_split.is_dead)
-			
-			# 添加到房间的敌人容器
-			enemies_container.add_child(mini_split)
-			
-			# ✅ 添加后再设置全局位置（此时mini_split已在场景树中）
-			mini_split.global_position = spawn_global_pos
-			
-			print("  🔀 生成小型分裂体 #", i+1)
-			print("    - 实际位置(全局): ", mini_split.global_position)
-			print("    - 可见: ", mini_split.visible)
-			print("    - z_index: ", mini_split.z_index)
-			
-			# ✅ 添加到房间的敌人列表
-			if "enemies" in current_room:
-				current_room.enemies.append(mini_split)
-			
-			# ✅ 连接死亡信号
-			if not mini_split.character_died.is_connected(current_room._on_enemy_character_died):
-				mini_split.character_died.connect(current_room._on_enemy_character_died)
-			
-			# 更新房间的敌人计数
-			if current_room.has_signal("enemy_count_changed"):
-				var old_count = current_room.alive_enemy_count
-				current_room.alive_enemy_count += 1
-				print("  📊 更新房间敌人计数: ", old_count, " → ", current_room.alive_enemy_count)
-				current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
-			
-			print("  ✅ 小型分裂体 #", i+1, " 完全初始化完成")
-	
-	# ✅ 所有小分裂体生成完成后，再处理父分裂体的死亡逻辑
-	print("🔀 所有小型分裂体已生成，开始处理父分裂体的死亡逻辑")
+	if is_instance_valid(encounter_owner):
+		var types: Array[String] = []
+		for index in range(split_count):
+			types.append("mini_splitter")
+		encounter_owner.request_reinforcements(self, types, "split")
 	_finalize_parent_death()
-
-func _create_mini_split() -> SplitterEnemy:
-	"""创建小型分裂体实例"""
-	var mini_split = create_mini_splitter_enemy(room_id)
-	
-	print("  🔀 创建小分裂体: health=", mini_split.health, "/", mini_split.max_health)
-	
-	return mini_split
-
-## ========== 攻击和追击行为 ==========
 
 func execute_attack_behavior() -> void:
 	"""执行攻击行为"""
@@ -366,83 +274,12 @@ func _finalize_parent_death() -> void:
 	# 掉落奖励
 	drop_rewards()
 	
-	# 通知房间敌人死亡
-	notify_room_enemy_death()
-	
 	# 发出敌人击败信号
 	enemy_defeated.emit(self, experience_reward)
 	
 	print("  ✅ 父分裂体死亡流程完成，等待动画后销毁")
 
 ## ========== 辅助方法 ==========
-
-func _find_valid_spawn_position(center: Vector2, preferred_offset: Vector2) -> Vector2:
-	"""
-	查找有效的生成位置（避开障碍物并确保在房间内）
-	
-	参数：
-	- center: 中心位置（死亡位置）
-	- preferred_offset: 首选偏移量
-	
-	返回：不与障碍物重叠且在房间内的有效位置
-	"""
-	# 获取当前房间边界
-	var room_bounds = get_current_room_bounds()
-	
-	var preferred_pos = center + preferred_offset
-	
-	# 检查首选位置是否有效（无障碍物且在房间内）
-	if _is_position_valid(preferred_pos) and room_bounds.has_point(preferred_pos):
-		return preferred_pos
-	
-	# 如果首选位置无效，尝试在周围寻找有效位置
-	var search_radius = 60.0  # 搜索半径
-	var max_attempts = 12  # 增加最大尝试次数
-	
-	for attempt in range(max_attempts):
-		var random_angle = randf() * TAU
-		var random_distance = randf_range(30.0, search_radius)
-		var test_offset = Vector2(cos(random_angle), sin(random_angle)) * random_distance
-		var test_pos = center + test_offset
-		
-		if _is_position_valid(test_pos) and room_bounds.has_point(test_pos):
-			print("    ✅ 找到有效位置（尝试 ", attempt + 1, " 次）: ", test_pos)
-			return test_pos
-	
-	# 如果所有尝试都失败，将中心位置限制在房间边界内
-	print("    ⚠️ 无法找到有效位置，使用限制后的中心位置")
-	var clamped_center = Vector2(
-		clamp(center.x, room_bounds.position.x, room_bounds.position.x + room_bounds.size.x),
-		clamp(center.y, room_bounds.position.y, room_bounds.position.y + room_bounds.size.y)
-	)
-	return clamped_center
-
-func _is_position_valid(check_position: Vector2) -> bool:
-	"""
-	检查位置是否有效（不与障碍物重叠）
-	
-	使用物理查询检测该位置是否有障碍物
-	"""
-	if not is_inside_tree():
-		return true  # 如果不在场景树中，无法检测，默认有效
-	
-	var space_state = get_world_2d().direct_space_state
-	if not space_state:
-		return true
-	
-	# 创建一个小的矩形区域查询（小分裂体的大小）
-	var query = PhysicsShapeQueryParameters2D.new()
-	var shape = RectangleShape2D.new()
-	shape.size = Vector2(12, 12)  # 稍大于小分裂体的碰撞体积（10x10）
-	query.shape = shape
-	query.transform = Transform2D(0, check_position)
-	query.collision_mask = Constants.LAYER_WORLD
-	
-	# 执行查询
-	var results = space_state.intersect_shape(query, 1)
-	
-	# 如果没有碰撞，位置有效
-	return results.is_empty()
 
 func get_ai_description() -> String:
 	"""获取AI描述"""

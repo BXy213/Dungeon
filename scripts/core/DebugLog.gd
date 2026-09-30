@@ -11,8 +11,6 @@ enum Level {
 const CATEGORY_GENERAL := "general"
 const CATEGORY_GAME := "game"
 const CATEGORY_UI := "ui"
-const CATEGORY_DUNGEON := "dungeon"
-const CATEGORY_ROOM := "room"
 const CATEGORY_COMBAT := "combat"
 const CATEGORY_SKILL := "skill"
 const CATEGORY_AI := "ai"

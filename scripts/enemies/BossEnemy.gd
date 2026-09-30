@@ -1,7 +1,6 @@
 ﻿extends "res://scripts/EnemyCharacter.gd"
 class_name BossEnemy
 
-const EnemyTypes = preload("res://scripts/factories/EnemyFactory.gd")
 const BOSS_TEXTURE = preload("res://art/enemies/enemy_boss.png")
 # 👑 BOSS - 保持距离，召唤小兵，战术移动
 
@@ -16,6 +15,7 @@ var max_distance: float = 200.0  # 最大攻击距离
 var summon_cooldown: float = 15.0  # 召唤技能冷却时间（秒）
 var last_summon_time: float = 0.0  # 使用引擎时间戳
 var summon_range: float = 300.0  # 召唤范围
+var encounter_summon_index := 0
 
 # 战术移动属性
 var move_timer: float = 0.0
@@ -125,6 +125,9 @@ func setup_collision_size() -> void:
 ## ========== AI行为方法 ==========
 
 func _find_target():
+	if not can_process_enemy_ai():
+		current_target = null
+		return
 	"""寻找玩家目标"""
 	var player = get_tree().get_first_node_in_group(Constants.GROUP_PLAYERS)
 	if player and not is_dead:
@@ -270,75 +273,11 @@ func perform_summon_ability() -> void:
 	summon_minions()
 
 func summon_minions() -> void:
-	"""召唤小兵"""
-	var dungeon_generator = get_tree().current_scene.get_node_or_null(Constants.NODE_DUNGEON_GENERATOR)
-	if not dungeon_generator:
-		print("⚠️ 未找到DungeonGenerator")
+	if not is_instance_valid(encounter_owner) or not can_process_enemy_ai():
 		return
-	
-	var current_room = dungeon_generator.current_room
-	if not current_room:
-		print("⚠️ 未找到当前房间")
-		return
-	
-	# spawn_area应该是相对于房间的本地坐标
-	var spawn_area = Rect2(
-		Vector2(50, 50),
-		current_room.room_size - Vector2(100, 100)
-	)
-	
-	print("👑 开始召唤小兵，当前房间: ", current_room.room_id)
-	
-	# 召唤1个精英战士
-	var elite_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var elite_soldier = current_room.create_enemy_by_type(EnemyTypes.ENEMY_ELITE_MELEE)
-	
-	if elite_soldier:
-		elite_soldier.position = elite_spawn_pos
-		current_room.enemies_container.add_child(elite_soldier)
-		await get_tree().process_frame
-		
-		current_room.enemies.append(elite_soldier)
-		elite_soldier.character_died.connect(current_room._on_enemy_character_died)
-		current_room.alive_enemy_count += 1
-		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
-		
-		print("    ✅ 召唤精英战士完成")
-	
-	# 召唤2个远程小兵
-	for i in range(2):
-		var ranged_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-		var ranged_soldier = current_room.create_enemy_by_type(EnemyTypes.ENEMY_RANGED_SOLDIER)
-		
-		if ranged_soldier:
-			ranged_soldier.position = ranged_spawn_pos
-			current_room.enemies_container.add_child(ranged_soldier)
-			await get_tree().process_frame
-			
-			current_room.enemies.append(ranged_soldier)
-			ranged_soldier.character_died.connect(current_room._on_enemy_character_died)
-			current_room.alive_enemy_count += 1
-			current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
-			
-			print("    ✅ 召唤远程小兵 #", i + 1, " 完成")
-	
-	# 召唤1个分裂者
-	var splitter_spawn_pos = current_room.get_valid_spawn_position(spawn_area)
-	var splitter = current_room.create_enemy_by_type(EnemyTypes.ENEMY_SPLITTER)
-	
-	if splitter:
-		splitter.position = splitter_spawn_pos
-		current_room.enemies_container.add_child(splitter)
-		await get_tree().process_frame
-		
-		current_room.enemies.append(splitter)
-		splitter.character_died.connect(current_room._on_enemy_character_died)
-		current_room.alive_enemy_count += 1
-		current_room.enemy_count_changed.emit(current_room.room_id, current_room.alive_enemy_count)
-		
-		print("    ✅ 召唤分裂者完成")
-	
-	print("👑 召唤完成！当前房间敌人数: ", current_room.alive_enemy_count)
+	encounter_summon_index += 1
+	var types: Array[String] = ["elite_melee", "ranged_soldier", "ranged_soldier", "splitter"]
+	encounter_owner.request_reinforcements(self, types, "summon_%d" % encounter_summon_index)
 
 func create_summon_effect() -> void:
 	"""创建召唤视觉效果"""
@@ -378,9 +317,3 @@ func get_ai_description() -> String:
 	return "BOSS AI - 战术移动，召唤小兵，不撤退"
 
 ## ========== 静态工厂方法 ==========
-
-static func create_boss_enemy(enemy_room_id: Vector2i) -> BossEnemy:
-	"""创建BOSS实例"""
-	var boss_enemy = BossEnemy.new()
-	boss_enemy.room_id = enemy_room_id
-	return boss_enemy
